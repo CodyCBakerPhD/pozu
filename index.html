@@ -467,10 +467,42 @@
         // ============================================================
         // Random frame extraction via sleap-io.js
         // ============================================================
+        // Re-derives `totalFrames` from the backend. The Mp4Box backend
+        // populates `samples` / `shape` only after the moov box is
+        // parsed, which can race the initial `loadVideo` return — so we
+        // ask again on every click rather than trusting a stale 0.
+        async function refreshTotalFrames() {
+            if (!state.videoModel || !state.videoMeta) return 0;
+            let total = state.videoMeta.totalFrames | 0;
+            if (total < 2) {
+                const times = (await state.videoModel.getFrameTimes()) ?? null;
+                const shape = state.videoModel.shape;
+                total = times?.length ?? shape?.[0] ?? 0;
+                if (total) {
+                    state.videoMeta.totalFrames = total;
+                    if (shape) {
+                        state.videoMeta.width = state.videoMeta.width || shape[2] || 0;
+                        state.videoMeta.height = state.videoMeta.height || shape[1] || 0;
+                    }
+                }
+            }
+            return total;
+        }
+
         async function loadRandomFrame() {
             if (!state.videoModel) return;
-            const { totalFrames } = state.videoMeta;
-            const idx = Math.floor(Math.random() * Math.max(1, totalFrames));
+            const total = await refreshTotalFrames();
+            if (total < 2) {
+                showStatus("error",
+                    `Cannot pick a random frame — backend reports ${total} frame(s).`);
+                return;
+            }
+            // Pick a fresh index; avoid showing the same frame twice
+            // in a row so the button always *visibly* does something.
+            let idx = Math.floor(Math.random() * total);
+            for (let tries = 0; tries < 10 && idx === state.frameIndex; tries++) {
+                idx = Math.floor(Math.random() * total);
+            }
             await showFrame(idx);
         }
 
@@ -479,11 +511,16 @@
             frameInfo.textContent = `Decoding frame ${idx}…`;
 
             const bitmap = await state.videoModel.getFrame(idx);
+            if (bitmap == null) {
+                showStatus("error", `Backend returned no data for frame ${idx}.`);
+                setControlsEnabled(true);
+                return;
+            }
 
             // Resolve actual frame dimensions (the backend may report
             // them on the bitmap itself even if shape is unknown).
-            const w = bitmap?.width ?? state.videoMeta.width;
-            const h = bitmap?.height ?? state.videoMeta.height;
+            const w = bitmap.width ?? state.videoMeta.width;
+            const h = bitmap.height ?? state.videoMeta.height;
             canvas.width = w;
             canvas.height = h;
             state.videoMeta.width = w;
