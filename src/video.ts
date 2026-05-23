@@ -47,11 +47,13 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 const LOAD_TIMEOUT_MS = 45_000;
 
 export async function loadVideoModel(url: string = VIDEO_URL): Promise<VideoModel> {
+    console.info(`[pose-zoo] loadVideoModel: fetching ${url} via mp4box backend`);
     const video = await withTimeout(
         loadVideo(url, { backend: "mp4box" }),
         LOAD_TIMEOUT_MS,
         "loadVideo"
     );
+    console.info("[pose-zoo] loadVideo resolved; querying frame times…");
     const times =
         (await withTimeout(
             Promise.resolve(video.getFrameTimes()),
@@ -60,6 +62,10 @@ export async function loadVideoModel(url: string = VIDEO_URL): Promise<VideoMode
         )) ?? null;
     const shape = video.shape;
     const totalFrames = times?.length ?? shape?.[0] ?? 0;
+    console.info(
+        `[pose-zoo] backend reports: shape=${JSON.stringify(shape)} ` +
+            `times.length=${times?.length ?? 0} totalFrames=${totalFrames} fps=${video.fps}`
+    );
     let fps = video.fps;
     if (fps == null || !Number.isFinite(fps)) {
         if (times && times.length > 1) {

@@ -7,6 +7,35 @@ import { createLabeler } from "./labeler.js";
 import { loadVideoModel, refreshTotalFrames, VIDEO_URL, type VideoModel } from "./video.js";
 import { buildPayload, buildLabelsObject, pickRandomFrame, type VideoMeta } from "./payload.js";
 
+// ---- Diagnostics ----
+// Surface module-evaluation / async errors directly into the loading
+// overlay so failures on the deployed preview don't silently hang.
+function showFatal(label: string, err: unknown): void {
+    const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    console.error(`[pose-zoo] ${label}:`, err);
+    const overlay = document.getElementById("initialLoading");
+    if (overlay) {
+        overlay.textContent = `❌ ${label}: ${msg}. See the browser console for details; click 🎲 New Random Frame to retry.`;
+        overlay.style.display = "flex";
+    }
+    for (const id of ["newFrameBtn", "resetBtn", "downloadBtn"]) {
+        const btn = document.getElementById(id) as HTMLButtonElement | null;
+        if (btn) btn.disabled = false;
+    }
+}
+window.addEventListener("error", (e) => showFatal("Uncaught error", e.error ?? e.message));
+window.addEventListener("unhandledrejection", (e) =>
+    showFatal("Unhandled promise rejection", e.reason)
+);
+
+function setStage(message: string): void {
+    console.info(`[pose-zoo] ${message}`);
+    const overlay = document.getElementById("initialLoading");
+    if (overlay) overlay.textContent = message;
+}
+
+console.info("[pose-zoo] main.ts module evaluating");
+
 // ---- DOM ----
 const canvas = document.getElementById("frameCanvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
@@ -19,6 +48,9 @@ const statusMsg = document.getElementById("statusMsg") as HTMLElement;
 const newFrameBtn = document.getElementById("newFrameBtn") as HTMLButtonElement;
 const resetBtn = document.getElementById("resetBtn") as HTMLButtonElement;
 const downloadBtn = document.getElementById("downloadBtn") as HTMLButtonElement;
+
+// Mark the overlay so we can verify the bundle actually loaded.
+setStage("Booting pose-zoo… (loading sleap-io.js bundle)");
 
 // ---- App state ----
 let videoModel: VideoModel | null = null;
@@ -129,9 +161,12 @@ async function loadRandomFrame() {
 }
 
 async function ensureVideoModel() {
-    initialLoading.textContent = "Loading sleap-io.js & opening the EMBER video…";
-    initialLoading.style.display = "flex";
+    setStage("Opening EMBER video via sleap-io.js (mp4box backend)…");
     videoModel = await loadVideoModel();
+    setStage(
+        `Video opened: ${videoModel.meta.totalFrames} frames, ` +
+            `${videoModel.meta.width}×${videoModel.meta.height} @ ${videoModel.meta.fps.toFixed(2)} fps`
+    );
 }
 
 // ---- Buttons ----
