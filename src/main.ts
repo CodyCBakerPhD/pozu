@@ -161,7 +161,7 @@ async function loadRandomFrame() {
 }
 
 async function ensureVideoModel() {
-    setStage("Opening EMBER video via sleap-io.js (mp4box backend)…");
+    setStage("Opening EMBER video via HTML5 <video>…");
     videoModel = await loadVideoModel();
     setStage(
         `Video opened: ${videoModel.meta.totalFrames} frames, ` +
