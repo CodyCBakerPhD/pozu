@@ -19,14 +19,14 @@
             A random frame from the EMBER-hosted video is decoded with <code>sleap-io.js</code>.
             Click a label on the right to select it, then click the frame to place a point. Placed
             points are collected into a <code>LabeledFrame</code> / <code>Instance</code> and can be
-            submitted to the annotation-receiver backend.
+            downloaded as a JSON record.
         </p>
 
         <div class="controls">
             <span class="frame-info" id="frameInfo">Loading…</span>
             <button id="newFrameBtn" disabled>🎲 New Random Frame</button>
             <button id="resetBtn" disabled>🔄 Reset Labels</button>
-            <button id="submitBtn" disabled>📤 Submit Labels</button>
+            <button id="downloadBtn" disabled>💾 Download JSON</button>
         </div>
 
         <div class="main-container">
@@ -43,23 +43,6 @@
             <div class="sidebar">
                 <h2>🏷️ Skeleton</h2>
                 <div class="label-palette" id="labelPalette"></div>
-
-                <div class="config-row">
-                    <label for="serverUrl">Server endpoint</label>
-                    <input
-                        type="text"
-                        id="serverUrl"
-                        value="https://your-server.example.com/api/annotations"
-                    />
-                </div>
-                <div class="config-row">
-                    <label for="apiSecret">API secret (Bearer)</label>
-                    <input
-                        type="password"
-                        id="apiSecret"
-                        placeholder="optional — sent as Authorization header"
-                    />
-                </div>
 
                 <div class="output-section">
                     <h3>JSON Preview</h3>

@@ -11,7 +11,7 @@ test.describe("Pose Zoo labeling page", () => {
     });
 
     test("shows the three primary controls (initially disabled)", async ({ page }) => {
-        for (const id of ["#newFrameBtn", "#resetBtn", "#submitBtn"]) {
+        for (const id of ["#newFrameBtn", "#resetBtn", "#downloadBtn"]) {
             await expect(page.locator(id)).toBeVisible();
             await expect(page.locator(id)).toBeDisabled();
         }

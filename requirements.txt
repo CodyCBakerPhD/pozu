@@ -1,2 +1,0 @@
-flask>=3.0
-flask-restx>=1.3

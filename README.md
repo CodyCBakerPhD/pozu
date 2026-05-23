@@ -19,14 +19,14 @@ See <https://iojs.sleap.ai/latest/#sleap-iojs> for the upstream docs.
   `skeleton.ts`).
 - `tests/integration/` — Playwright tests that boot the Vite dev
   server and assert against the rendered DOM.
-- `backend.py` — Flask + flask-restx annotation receiver. Validates
-  the payload, writes it as a JSON file inside a sparse checkout of
-  a target GitHub repository, and commits/pushes.
 - `.github/workflows/preview.yml` — builds the site with
   `npm run build` and deploys a per-PR static preview of `dist/` to
   the `gh-pages` branch.
 - `.github/workflows/test.yml` — runs the Vitest + Playwright
   suites on every PR.
+
+Labeled frames are exported directly from the browser as a JSON file
+via the **Download JSON** button — there is no server component.
 
 ## Run locally
 
@@ -37,14 +37,7 @@ npm install
 # Serve the labeling page (Vite dev server with HMR)
 npm run dev
 # → open http://localhost:5173/
-
-# In another terminal, run the receiver
-pip install -r requirements.txt
-python backend.py
-# → http://localhost:5000/docs/
 ```
-
-Then point the labeling page's "Server endpoint" at `http://localhost:5000/api/annotations` and provide the API secret you configured via the `API_SECRET` environment variable.
 
 ## npm scripts
 

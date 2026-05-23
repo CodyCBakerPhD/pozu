@@ -241,30 +241,6 @@ canvas {
     color: #ffb4b4;
 }
 
-.config-row {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-bottom: 10px;
-}
-
-.config-row label {
-    font-size: 0.75rem;
-    color: #aaa;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.config-row input {
-    width: 100%;
-    padding: 6px 8px;
-    border-radius: 4px;
-    border: 1px solid #333;
-    background: #0a0a1a;
-    color: #e0e0e0;
-    font-size: 0.85rem;
-}
-
 .loading-fullscreen {
     display: flex;
     align-items: center;

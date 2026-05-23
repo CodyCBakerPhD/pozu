@@ -18,9 +18,7 @@ const frameInfo = document.getElementById("frameInfo") as HTMLElement;
 const statusMsg = document.getElementById("statusMsg") as HTMLElement;
 const newFrameBtn = document.getElementById("newFrameBtn") as HTMLButtonElement;
 const resetBtn = document.getElementById("resetBtn") as HTMLButtonElement;
-const submitBtn = document.getElementById("submitBtn") as HTMLButtonElement;
-const serverUrlInput = document.getElementById("serverUrl") as HTMLInputElement;
-const apiSecretInput = document.getElementById("apiSecret") as HTMLInputElement;
+const downloadBtn = document.getElementById("downloadBtn") as HTMLButtonElement;
 
 // ---- App state ----
 let videoModel: VideoModel | null = null;
@@ -42,7 +40,7 @@ labeler.onChange(updateJSON);
 function setControlsEnabled(enabled: boolean) {
     newFrameBtn.disabled = !enabled;
     resetBtn.disabled = !enabled;
-    submitBtn.disabled = !enabled;
+    downloadBtn.disabled = !enabled;
 }
 
 function updateJSON() {
@@ -141,19 +139,14 @@ resetBtn.addEventListener("click", () => {
     updateJSON();
 });
 
-submitBtn.addEventListener("click", async () => {
+downloadBtn.addEventListener("click", async () => {
     if (labeler.placed.size === 0) {
         showStatus("error", "No labels placed yet.");
         return;
     }
-    const url = serverUrlInput.value.trim();
-    if (!url) {
-        showStatus("error", "Please enter a server endpoint.");
-        return;
-    }
 
     // Materialise a sleap-io.js Labels object too — even though we
-    // only POST JSON for now, this confirms the data is serialisable
+    // only export JSON for now, this confirms the data is serialisable
     // through the v2 model.
     const meta = getVideoMeta();
     if (meta) {
@@ -170,38 +163,22 @@ submitBtn.addEventListener("click", async () => {
         }
     }
 
-    showStatus("info", "Sending…");
-    try {
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        const secret = apiSecretInput.value.trim();
-        if (secret) headers["Authorization"] = `Bearer ${secret}`;
-        const response = await fetch(url, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(
-                buildPayload({
-                    videoUrl: VIDEO_URL,
-                    frameIndex,
-                    videoMeta: meta,
-                    placed: labeler.placed,
-                })
-            ),
-        });
-        const respText = await response.text();
-        if (response.ok) {
-            showStatus(
-                "success",
-                `✅ Submitted (${response.status}). ${respText.substring(0, 120)}`
-            );
-        } else {
-            showStatus(
-                "error",
-                `❌ ${response.status} ${response.statusText}: ${respText.substring(0, 200)}`
-            );
-        }
-    } catch (err) {
-        showStatus("error", `❌ Network error: ${(err as Error).message}`);
-    }
+    const payload = buildPayload({
+        videoUrl: VIDEO_URL,
+        frameIndex,
+        videoMeta: meta,
+        placed: labeler.placed,
+    });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pose-zoo_frame-${frameIndex}_${payload.timestamp.replace(/[:.]/g, "-")}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showStatus("success", `✅ Downloaded ${a.download}`);
 });
 
 // ---- Boot ----
