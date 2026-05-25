@@ -112,6 +112,30 @@ test.describe("Pozu box-selection page", () => {
         expect(textDecoration).toBe("none");
     });
 
+    test("nav label typography matches between index and box pages", async ({ page }) => {
+        await page.goto("/");
+        const indexNavStyle = await page.locator('[data-view-mode="binary"]').evaluate((el) => {
+            const computed = window.getComputedStyle(el);
+            return {
+                fontSize: computed.fontSize,
+                fontFamily: computed.fontFamily,
+                lineHeight: computed.lineHeight,
+            };
+        });
+
+        await page.goto("/box.html");
+        const boxNavStyle = await page.locator('a.top-nav-link[href*="#binary"]').evaluate((el) => {
+            const computed = window.getComputedStyle(el);
+            return {
+                fontSize: computed.fontSize,
+                fontFamily: computed.fontFamily,
+                lineHeight: computed.lineHeight,
+            };
+        });
+
+        expect(boxNavStyle).toEqual(indexNavStyle);
+    });
+
     test("shows box controls with updated bottom actions", async ({ page }) => {
         await expect(page.locator("#newFrameBtn")).toContainText("No Subject Present");
         await expect(page.locator("#resetBtn")).toContainText("Reset Box");
