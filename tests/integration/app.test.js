@@ -74,12 +74,15 @@ test.describe("Pozu labeling page", () => {
         );
     });
 
-    test("hides JSON preview and keeps controls below the frame", async ({ page }) => {
+    test("hides JSON preview and keeps reset at top with remaining actions below frame", async ({
+        page,
+    }) => {
         await expect(page.locator("#jsonOutput")).toHaveCount(0);
         await expect(page.locator(".output-section")).toHaveCount(0);
+        await expect(page.locator(".controls #resetBtn")).toBeVisible();
         await expect(page.locator(".bottom-actions #newFrameBtn")).toBeVisible();
-        await expect(page.locator(".bottom-actions #resetBtn")).toBeVisible();
         await expect(page.locator(".bottom-actions #downloadBtn")).toBeVisible();
+        await expect(page.locator(".bottom-actions #resetBtn")).toHaveCount(0);
     });
 });
 
