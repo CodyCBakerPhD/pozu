@@ -53,6 +53,7 @@ const downloadBtn = document.getElementById("downloadBtn") as HTMLButtonElement;
 const labelView = document.getElementById("labelView") as HTMLElement;
 const comingSoonView = document.getElementById("comingSoonView") as HTMLElement;
 const comingSoonModeName = document.getElementById("comingSoonModeName") as HTMLElement;
+const binaryDemo = document.getElementById("binaryDemo") as HTMLElement;
 const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-view-mode]"));
 
 type ViewMode = "binary" | "track" | "label";
@@ -105,6 +106,7 @@ function setViewMode(mode: ViewMode) {
     labelView.hidden = true;
     comingSoonView.hidden = false;
     comingSoonModeName.textContent = VIEW_MODE_NAMES[mode];
+    binaryDemo.hidden = mode !== "binary";
 }
 
 function showStatus(type: "info" | "success" | "error", message: string) {
