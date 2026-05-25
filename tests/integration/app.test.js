@@ -76,6 +76,24 @@ test.describe("Pozu labeling page", () => {
         );
     });
 
+    test("reset labels returns active selection to the top label", async ({ page }) => {
+        await page.locator('.label-item[data-label-id="tail_base"]').click();
+        await expect(page.locator('.label-item[data-label-id="tail_base"]')).toHaveClass(/active/);
+
+        await page.evaluate(() => {
+            const resetBtn = document.getElementById("resetBtn");
+            if (resetBtn instanceof HTMLButtonElement) resetBtn.disabled = false;
+        });
+        await page.locator("#resetBtn").click();
+
+        await expect(page.locator('.label-item[data-label-id="left_front_paw"]')).toHaveClass(
+            /active/
+        );
+        await expect(page.locator('.label-item[data-label-id="tail_base"]')).not.toHaveClass(
+            /active/
+        );
+    });
+
     test("hides JSON preview and keeps reset at top with remaining actions below frame", async ({
         page,
     }) => {

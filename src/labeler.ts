@@ -187,6 +187,7 @@ export function createLabeler(opts: LabelerOptions): Labeler {
             for (const entry of placed.values()) entry.element?.remove();
             placed.clear();
             for (const def of LABEL_DEFINITIONS) setLabelPlaced(def.id, false);
+            selectLabel(LABEL_DEFINITIONS[0].id);
             notify();
         },
         setVideoMeta(_meta: VideoMeta) {
