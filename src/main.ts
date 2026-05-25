@@ -3,10 +3,10 @@
  * labeler module, and the sleap-io.js-backed video loader.
  */
 import "./styles.css";
-import { saveSlpToBytes } from "@talmolab/sleap-io.js";
 import { createLabeler } from "./labeler.js";
 import { loadVideoModel, refreshTotalFrames, VIDEO_URL, type VideoModel } from "./video.js";
-import { buildPayload, buildLabelsObject, pickRandomFrame, type VideoMeta } from "./payload.js";
+import { buildPayload, pickRandomFrame, type VideoMeta } from "./payload.js";
+import { submitLabelPayload } from "./label-api.js";
 
 // ---- Diagnostics ----
 // Surface module-evaluation / async errors directly into the loading
@@ -228,29 +228,32 @@ downloadBtn.addEventListener("click", async () => {
         return;
     }
 
+    const payload = buildPayload({
+        videoUrl: VIDEO_URL,
+        frameIndex,
+        videoMeta: meta,
+        placed: labeler.placed,
+    });
+
+    setControlsEnabled(false);
     try {
-        const labels = buildLabelsObject({
-            videoUrl: VIDEO_URL,
-            frameIndex,
-            videoMeta: meta,
-            placed: labeler.placed,
-            skeleton: labeler.skeleton,
-        });
-        const slpBytes = await saveSlpToBytes(labels);
-        const blob = new Blob([new Uint8Array(slpBytes)], { type: "application/octet-stream" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `pozu_frame-${frameIndex}_${new Date().toISOString().replace(/[:.]/g, "-")}.slp`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showStatus("success", `✅ Downloaded ${a.download}`);
+        await submitLabelPayload(payload);
     } catch (err) {
-        console.error("SLP export failed:", err);
+        console.error("Label JSON submission failed:", err);
         const msg = err instanceof Error ? err.message : String(err);
-        showStatus("error", `Failed to export .slp: ${msg}`);
+        showStatus("error", `Failed to submit labels: ${msg}`);
+        setControlsEnabled(true);
+        return;
+    }
+
+    statusMsg.style.display = "none";
+    try {
+        await loadRandomFrame();
+    } catch (err) {
+        console.error("Loading next random frame failed after submit:", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        showStatus("error", `Labels were submitted, but loading a new frame failed: ${msg}`);
+        setControlsEnabled(true);
     }
 });
 

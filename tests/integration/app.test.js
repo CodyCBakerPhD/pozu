@@ -25,7 +25,7 @@ test.describe("Pozu labeling page", () => {
         for (const id of ["#newFrameBtn", "#resetBtn", "#downloadBtn"]) {
             await expect(page.locator(id)).toBeVisible();
         }
-        await expect(page.locator("#downloadBtn")).toContainText("Download .slp");
+        await expect(page.locator("#downloadBtn")).toContainText("Submit");
     });
 
     test("shows top nav modes and coming soon placeholder for non-label modes", async ({
