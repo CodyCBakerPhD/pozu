@@ -98,6 +98,10 @@ h1 {
     line-height: 1.4;
 }
 
+#boxView .instructions {
+    max-width: none;
+}
+
 .controls {
     display: flex;
     gap: 12px;
