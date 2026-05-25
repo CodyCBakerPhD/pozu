@@ -58,6 +58,8 @@ test.describe("Pozu labeling page", () => {
 
     test("renders one palette entry per label definition", async ({ page }) => {
         await expect(page.locator(".label-item")).toHaveCount(6);
+        await expect(page.locator(".label-item .coords")).toHaveCount(6);
+        await expect(page.locator(".label-item .coords").first()).toHaveText("○");
         await expect(page.locator('.label-item[data-label-id="nose"]')).toBeVisible();
         await expect(page.locator('.label-item[data-label-id="tail_base"]')).toBeVisible();
     });
