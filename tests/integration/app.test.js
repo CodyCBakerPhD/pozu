@@ -25,7 +25,8 @@ test.describe("Pozu labeling page", () => {
         for (const id of ["#newFrameBtn", "#resetBtn", "#downloadBtn"]) {
             await expect(page.locator(id)).toBeVisible();
         }
-        await expect(page.locator("#downloadBtn")).toContainText("Download .slp");
+        await expect(page.locator("#newFrameBtn")).toContainText("No Subject Present");
+        await expect(page.locator("#downloadBtn")).toContainText("Submit");
     });
 
     test("shows top nav modes and coming soon placeholder for non-label modes", async ({
@@ -57,6 +58,8 @@ test.describe("Pozu labeling page", () => {
 
     test("renders one palette entry per label definition", async ({ page }) => {
         await expect(page.locator(".label-item")).toHaveCount(6);
+        await expect(page.locator(".label-item .coords")).toHaveCount(6);
+        await expect(page.locator(".label-item .coords").first()).toHaveText("○");
         await expect(page.locator('.label-item[data-label-id="nose"]')).toBeVisible();
         await expect(page.locator('.label-item[data-label-id="tail_base"]')).toBeVisible();
     });
@@ -73,18 +76,33 @@ test.describe("Pozu labeling page", () => {
         );
     });
 
-    test("JSON preview reflects the canonical six-label schema", async ({ page }) => {
-        const text = await page.locator("#jsonOutput").textContent();
-        expect(text).toBeTruthy();
-        const json = JSON.parse(text);
-        expect(json.labels.map((l) => l.id)).toEqual([
-            "left_front_paw",
-            "right_front_paw",
-            "left_hind_paw",
-            "right_hind_paw",
-            "nose",
-            "tail_base",
-        ]);
+    test("reset labels returns active selection to the top label", async ({ page }) => {
+        await page.locator('.label-item[data-label-id="tail_base"]').click();
+        await expect(page.locator('.label-item[data-label-id="tail_base"]')).toHaveClass(/active/);
+
+        await page.evaluate(() => {
+            const resetBtn = document.getElementById("resetBtn");
+            if (resetBtn instanceof HTMLButtonElement) resetBtn.disabled = false;
+        });
+        await page.locator("#resetBtn").click();
+
+        await expect(page.locator('.label-item[data-label-id="left_front_paw"]')).toHaveClass(
+            /active/
+        );
+        await expect(page.locator('.label-item[data-label-id="tail_base"]')).not.toHaveClass(
+            /active/
+        );
+    });
+
+    test("hides JSON preview and keeps reset at top with remaining actions below frame", async ({
+        page,
+    }) => {
+        await expect(page.locator("#jsonOutput")).toHaveCount(0);
+        await expect(page.locator(".output-section")).toHaveCount(0);
+        await expect(page.locator(".controls #resetBtn")).toBeVisible();
+        await expect(page.locator(".bottom-actions #newFrameBtn")).toBeVisible();
+        await expect(page.locator(".bottom-actions #downloadBtn")).toBeVisible();
+        await expect(page.locator(".bottom-actions #resetBtn")).toHaveCount(0);
     });
 });
 

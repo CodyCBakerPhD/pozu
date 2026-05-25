@@ -55,8 +55,7 @@ export function createLabeler(opts: LabelerOptions): Labeler {
             item.innerHTML = `
                 <div class="color-swatch" style="background:${def.color}"></div>
                 <span>${def.name}</span>
-                <span class="coords" id="coords-${def.id}">—</span>
-                <span class="status-icon" id="status-${def.id}">○</span>
+                <span class="coords" id="coords-${def.id}">○</span>
             `;
             item.addEventListener("click", () => selectLabel(def.id));
             opts.labelPalette.appendChild(item);
@@ -78,12 +77,9 @@ export function createLabeler(opts: LabelerOptions): Labeler {
         const item = document.querySelector<HTMLElement>(`.label-item[data-label-id="${id}"]`);
         if (!item) return;
         item.classList.toggle("placed", isPlaced);
-        const icon = document.getElementById(`status-${id}`);
-        if (icon) icon.textContent = isPlaced ? "●" : "○";
         const coords = document.getElementById(`coords-${id}`);
         if (coords) {
-            const p = placed.get(id);
-            coords.textContent = p ? `${p.pixelX.toFixed(0)}, ${p.pixelY.toFixed(0)}` : "—";
+            coords.textContent = isPlaced ? "✓" : "○";
         }
     }
 
@@ -191,6 +187,8 @@ export function createLabeler(opts: LabelerOptions): Labeler {
             for (const entry of placed.values()) entry.element?.remove();
             placed.clear();
             for (const def of LABEL_DEFINITIONS) setLabelPlaced(def.id, false);
+            selectLabel(LABEL_DEFINITIONS[0].id);
+            notify();
         },
         setVideoMeta(_meta: VideoMeta) {
             // The labeler reads meta lazily via `getVideoMeta`; this hook

@@ -6,7 +6,9 @@ import "./styles.css";
 import { saveSlpToBytes } from "@talmolab/sleap-io.js";
 import { createLabeler } from "./labeler.js";
 import { loadVideoModel, refreshTotalFrames, VIDEO_URL, type VideoModel } from "./video.js";
-import { buildPayload, buildLabelsObject, pickRandomFrame, type VideoMeta } from "./payload.js";
+import { buildLabelsObject, pickRandomFrame, type VideoMeta } from "./payload.js";
+import { submitLabelPayload } from "./label-api.js";
+import { LABEL_DEFINITIONS } from "./skeleton.js";
 
 // ---- Diagnostics ----
 // Surface module-evaluation / async errors directly into the loading
@@ -16,7 +18,7 @@ function showFatal(label: string, err: unknown): void {
     console.error(`[pozu] ${label}:`, err);
     const overlay = document.getElementById("initialLoading");
     if (overlay) {
-        overlay.textContent = `❌ ${label}: ${msg}. See the browser console for details; click 🎲 New Random Frame to retry.`;
+        overlay.textContent = `❌ ${label}: ${msg}. See the browser console for details; click 🚫 No Subject Present to retry.`;
         overlay.style.display = "flex";
     }
     for (const id of ["newFrameBtn", "resetBtn", "downloadBtn"]) {
@@ -43,7 +45,6 @@ const ctx = canvas.getContext("2d")!;
 const canvasContainer = document.getElementById("canvasContainer") as HTMLElement;
 const initialLoading = document.getElementById("initialLoading") as HTMLElement;
 const labelPalette = document.getElementById("labelPalette") as HTMLElement;
-const jsonOutput = document.getElementById("jsonOutput") as HTMLElement;
 const frameInfo = document.getElementById("frameInfo") as HTMLElement;
 const statusMsg = document.getElementById("statusMsg") as HTMLElement;
 const newFrameBtn = document.getElementById("newFrameBtn") as HTMLButtonElement;
@@ -79,7 +80,11 @@ const labeler = createLabeler({
     getVideoMeta,
 });
 
-labeler.onChange(updateJSON);
+function updateSubmitReadyState() {
+    downloadBtn.classList.toggle("ready", labeler.placed.size === LABEL_DEFINITIONS.length);
+}
+labeler.onChange(updateSubmitReadyState);
+updateSubmitReadyState();
 
 function setControlsEnabled(enabled: boolean) {
     newFrameBtn.disabled = !enabled;
@@ -102,19 +107,6 @@ function setViewMode(mode: ViewMode) {
     comingSoonModeName.textContent = VIEW_MODE_NAMES[mode];
 }
 
-function updateJSON() {
-    jsonOutput.textContent = JSON.stringify(
-        buildPayload({
-            videoUrl: VIDEO_URL,
-            frameIndex,
-            videoMeta: getVideoMeta(),
-            placed: labeler.placed,
-        }),
-        null,
-        2
-    );
-}
-
 function showStatus(type: "info" | "success" | "error", message: string) {
     statusMsg.className = type;
     statusMsg.textContent = message;
@@ -126,6 +118,15 @@ function showStatus(type: "info" | "success" | "error", message: string) {
             }
         }, 5000);
     }
+}
+
+function encodeBytesAsBase64(bytes: Uint8Array): string {
+    let binary = "";
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
 }
 
 async function showFrame(idx: number) {
@@ -169,7 +170,6 @@ async function showFrame(idx: number) {
 
     frameInfo.textContent =
         `Frame ${idx} / ${meta.totalFrames}  ` + `(${w}×${h} @ ${meta.fps.toFixed(2)} fps)`;
-    updateJSON();
     setControlsEnabled(true);
 }
 
@@ -202,7 +202,7 @@ newFrameBtn.addEventListener("click", () => {
         console.error(err);
         const msg = err?.message ?? String(err);
         showStatus("error", `Failed to load frame: ${msg}`);
-        initialLoading.textContent = `❌ ${msg}. Click 🎲 New Random Frame to retry.`;
+        initialLoading.textContent = `❌ ${msg}. Click 🚫 No Subject Present to retry.`;
         initialLoading.style.display = "flex";
         // Keep the controls enabled so the user can retry.
         newFrameBtn.disabled = false;
@@ -213,7 +213,6 @@ newFrameBtn.addEventListener("click", () => {
 
 resetBtn.addEventListener("click", () => {
     labeler.clearAll();
-    updateJSON();
 });
 
 downloadBtn.addEventListener("click", async () => {
@@ -228,29 +227,34 @@ downloadBtn.addEventListener("click", async () => {
         return;
     }
 
+    const labels = buildLabelsObject({
+        videoUrl: VIDEO_URL,
+        frameIndex,
+        videoMeta: meta,
+        placed: labeler.placed,
+        skeleton: labeler.skeleton,
+    });
+    const labelsFileContent = encodeBytesAsBase64(await saveSlpToBytes(labels));
+
+    setControlsEnabled(false);
     try {
-        const labels = buildLabelsObject({
-            videoUrl: VIDEO_URL,
-            frameIndex,
-            videoMeta: meta,
-            placed: labeler.placed,
-            skeleton: labeler.skeleton,
-        });
-        const slpBytes = await saveSlpToBytes(labels);
-        const blob = new Blob([new Uint8Array(slpBytes)], { type: "application/octet-stream" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `pozu_frame-${frameIndex}_${new Date().toISOString().replace(/[:.]/g, "-")}.slp`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showStatus("success", `✅ Downloaded ${a.download}`);
+        await submitLabelPayload(VIDEO_URL, labelsFileContent);
     } catch (err) {
-        console.error("SLP export failed:", err);
+        console.error("Label JSON submission failed:", err);
         const msg = err instanceof Error ? err.message : String(err);
-        showStatus("error", `Failed to export .slp: ${msg}`);
+        showStatus("error", `Failed to submit labels: ${msg}`);
+        setControlsEnabled(true);
+        return;
+    }
+
+    statusMsg.style.display = "none";
+    try {
+        await loadRandomFrame();
+    } catch (err) {
+        console.error("Loading next random frame failed after submit:", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        showStatus("error", `Labels were submitted, but loading a new frame failed: ${msg}`);
+        setControlsEnabled(true);
     }
 });
 
@@ -271,7 +275,6 @@ if (initialHash && initialHash in VIEW_MODE_NAMES) {
 }
 
 // ---- Boot ----
-updateJSON();
 (async () => {
     try {
         await ensureVideoModel();
@@ -279,7 +282,7 @@ updateJSON();
     } catch (err) {
         console.error(err);
         const msg = (err as Error).message;
-        initialLoading.textContent = `❌ Failed to load video via sleap-io.js: ${msg}. Click 🎲 New Random Frame to retry.`;
+        initialLoading.textContent = `❌ Failed to load video via sleap-io.js: ${msg}. Click 🚫 No Subject Present to retry.`;
         showStatus("error", msg);
         // Re-enable controls so the user can retry instead of being
         // permanently stuck on the loading overlay.
