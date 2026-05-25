@@ -15,6 +15,12 @@ test.describe("Pozu labeling page", () => {
         await expect(page.locator(".page-credit")).toContainText("sleap-io.js");
     });
 
+    test("serves the nav logo asset", async ({ page }) => {
+        const response = await page.request.get("/pozu-logo.svg");
+        expect(response.ok()).toBe(true);
+        expect(response.headers()["content-type"]).toContain("image/svg+xml");
+    });
+
     test("shows the three primary controls", async ({ page }) => {
         for (const id of ["#newFrameBtn", "#resetBtn", "#downloadBtn"]) {
             await expect(page.locator(id)).toBeVisible();
