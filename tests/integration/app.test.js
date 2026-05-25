@@ -89,21 +89,36 @@ test.describe("Pozu box-selection page", () => {
         await expect(boxLink).toHaveClass(/active/);
     });
 
-    test("shows the three box-page controls", async ({ page }) => {
-        await expect(page.locator("#newFrameBtn")).toBeVisible();
+    test("shows box controls with updated bottom actions", async ({ page }) => {
+        await expect(page.locator("#newFrameBtn")).toContainText("No Subject Present");
         await expect(page.locator("#resetBtn")).toContainText("Reset Box");
-        await expect(page.locator("#downloadBtn")).toContainText("Submit to Server");
+        await expect(page.locator("#downloadBtn")).toContainText("Submit");
     });
 
-    test("Reset and Download start disabled and JSON preview shows a null box", async ({
-        page,
-    }) => {
+    test("Reset and Submit start disabled and box/json panels are absent", async ({ page }) => {
         await expect(page.locator("#resetBtn")).toBeDisabled();
         await expect(page.locator("#downloadBtn")).toBeDisabled();
-        const text = await page.locator("#jsonOutput").textContent();
-        expect(text).toBeTruthy();
-        const json = JSON.parse(text);
-        expect(json).toHaveProperty("box", null);
+        await expect(page.locator("#jsonOutput")).toHaveCount(0);
+        await expect(page.locator("#boxCoords")).toHaveCount(0);
+    });
+
+    test("includes an error modal with GitHub issues link", async ({ page }) => {
+        await expect(page.locator("#errorModal")).toHaveCount(1);
+        const issuesLink = page.locator(
+            '#errorModal a[href="https://github.com/CodyCBakerPhD/pozu/issues"]'
+        );
+        await expect(issuesLink).toHaveAttribute(
+            "href",
+            "https://github.com/CodyCBakerPhD/pozu/issues"
+        );
+    });
+
+    test("submit button ready highlight is green", async ({ page }) => {
+        const borderColor = await page.locator("#downloadBtn").evaluate((el) => {
+            el.classList.add("ready");
+            return window.getComputedStyle(el).borderTopColor;
+        });
+        expect(borderColor).toBe("rgb(34, 197, 94)");
     });
 
     test("Label link in the nav points back to the labeling page", async ({ page }) => {

@@ -98,6 +98,10 @@ h1 {
     line-height: 1.4;
 }
 
+#boxView .instructions {
+    max-width: none;
+}
+
 .controls {
     display: flex;
     gap: 12px;
@@ -107,7 +111,8 @@ h1 {
     justify-content: center;
 }
 
-.controls button {
+.controls button,
+.bottom-actions button {
     padding: 8px 18px;
     border: none;
     border-radius: 6px;
@@ -119,12 +124,14 @@ h1 {
         box-shadow 0.2s;
 }
 
-.controls button:hover {
+.controls button:hover,
+.bottom-actions button:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.controls button:disabled {
+.controls button:disabled,
+.bottom-actions button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
@@ -136,10 +143,14 @@ h1 {
     color: white;
 }
 
-#submitBtn {
+#downloadBtn {
     background: #0f3460;
     color: white;
     border: 2px solid #e94560;
+}
+
+#downloadBtn.ready {
+    border-color: #22c55e;
 }
 
 #resetBtn {
@@ -164,6 +175,15 @@ h1 {
     flex-wrap: wrap;
     justify-content: center;
     padding: 0 16px;
+}
+
+.bottom-actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
 .canvas-container {
@@ -326,6 +346,49 @@ canvas {
     display: block;
     background: #7f1d1d;
     color: #fecaca;
+}
+
+.error-modal {
+    margin: auto;
+    max-width: 460px;
+    width: calc(100% - 32px);
+    border: 1px solid #334155;
+    border-radius: 10px;
+    background: #0b1220;
+    color: #e2e8f0;
+    padding: 18px;
+}
+
+.error-modal::backdrop {
+    background: rgba(2, 6, 23, 0.75);
+}
+
+.error-modal h2 {
+    margin-bottom: 10px;
+}
+
+.error-modal p {
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.error-modal a {
+    color: #7dd3fc;
+}
+
+.error-modal form {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.error-modal button {
+    border: none;
+    border-radius: 6px;
+    background: #0ea5e9;
+    color: #fff;
+    font-weight: 600;
+    padding: 8px 16px;
+    cursor: pointer;
 }
 
 .loading-fullscreen {
