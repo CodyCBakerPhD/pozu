@@ -4,7 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Pozu</title>
-      <script type="module" crossorigin src="./assets/index-jl7OjPI8.js"></script>
+      <script type="module" crossorigin src="./assets/index-DqM38qjX.js"></script>
       <link rel="modulepreload" crossorigin href="./assets/payload-Ce-u9iFw.js">
       <link rel="stylesheet" crossorigin href="./assets/payload-B0X_h-yk.css">
     </head>
@@ -34,13 +34,6 @@
                     Click a label on the right to select it, then click the frame to place a point.
                 </p>
 
-                <div class="controls">
-                    <span class="frame-info" id="frameInfo">Loading…</span>
-                    <button id="newFrameBtn" disabled>🎲 New Random Frame</button>
-                    <button id="resetBtn" disabled>🔄 Reset Labels</button>
-                    <button id="downloadBtn" disabled>📤 Submit</button>
-                </div>
-
                 <div class="main-container">
                     <div>
                         <div class="canvas-container" id="canvasContainer" style="display: none">
@@ -50,16 +43,17 @@
                             <div class="spinner"></div>
                             Loading frame...
                         </div>
+                        <div class="bottom-actions">
+                            <span class="frame-info" id="frameInfo">Loading…</span>
+                            <button id="newFrameBtn" disabled>🚫 No Subject Present</button>
+                            <button id="resetBtn" disabled>🔄 Reset Labels</button>
+                            <button id="downloadBtn" disabled>📤 Submit</button>
+                        </div>
                     </div>
 
                     <div class="sidebar">
                         <h2>🏷️ Skeleton</h2>
                         <div class="label-palette" id="labelPalette"></div>
-
-                        <div class="output-section">
-                            <h3>JSON Preview</h3>
-                            <pre id="jsonOutput">{ "labels": [] }</pre>
-                        </div>
 
                         <div id="statusMsg"></div>
                     </div>
