@@ -7,6 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
     root: "src",
     base: "./",
+    publicDir: resolve(__dirname, "../public"),
     build: {
         outDir: "../dist",
         emptyOutDir: true,

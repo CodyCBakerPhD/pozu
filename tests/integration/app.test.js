@@ -7,8 +7,18 @@ test.describe("Pozu labeling page", () => {
 
     test("renders top nav title and page credit", async ({ page }) => {
         await expect(page.locator(".top-nav-brand")).toContainText("Pozu");
+        await expect(page.locator(".top-nav-brand .top-nav-logo")).toHaveAttribute(
+            "src",
+            /\/pozu-logo\.svg$/
+        );
         await expect(page.locator(".top-nav-brand")).not.toContainText("🦓");
         await expect(page.locator(".page-credit")).toContainText("sleap-io.js");
+    });
+
+    test("serves the nav logo asset", async ({ page }) => {
+        const response = await page.request.get("/pozu-logo.svg");
+        expect(response.ok()).toBe(true);
+        expect(response.headers()["content-type"]).toContain("image/svg+xml");
     });
 
     test("shows the three primary controls", async ({ page }) => {
@@ -85,8 +95,45 @@ test.describe("Pozu box-selection page", () => {
 
     test("renders the box page chrome with Box active in the nav", async ({ page }) => {
         await expect(page.locator(".top-nav-brand")).toContainText("Pozu");
+        await expect(page.locator(".top-nav-brand .top-nav-logo")).toHaveAttribute(
+            "src",
+            /\/pozu-logo\.svg$/
+        );
         const boxLink = page.locator('a.top-nav-link[href*="box.html"]');
         await expect(boxLink).toHaveClass(/active/);
+    });
+
+    test("nav links keep button-like styling on box page", async ({ page }) => {
+        const textDecoration = await page
+            .locator('a.top-nav-link[href*="#binary"]')
+            .evaluate((el) => {
+                return window.getComputedStyle(el).textDecorationLine;
+            });
+        expect(textDecoration).toBe("none");
+    });
+
+    test("nav label typography matches between index and box pages", async ({ page }) => {
+        await page.goto("/");
+        const indexNavStyle = await page.locator('[data-view-mode="binary"]').evaluate((el) => {
+            const computed = window.getComputedStyle(el);
+            return {
+                fontSize: computed.fontSize,
+                fontFamily: computed.fontFamily,
+                lineHeight: computed.lineHeight,
+            };
+        });
+
+        await page.goto("/box.html");
+        const boxNavStyle = await page.locator('a.top-nav-link[href*="#binary"]').evaluate((el) => {
+            const computed = window.getComputedStyle(el);
+            return {
+                fontSize: computed.fontSize,
+                fontFamily: computed.fontFamily,
+                lineHeight: computed.lineHeight,
+            };
+        });
+
+        expect(boxNavStyle).toEqual(indexNavStyle);
     });
 
     test("shows box controls with updated bottom actions", async ({ page }) => {
