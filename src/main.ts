@@ -3,10 +3,9 @@
  * labeler module, and the sleap-io.js-backed video loader.
  */
 import "./styles.css";
-import { saveSlpToBytes } from "@talmolab/sleap-io.js";
 import { createLabeler } from "./labeler.js";
 import { loadVideoModel, refreshTotalFrames, VIDEO_URL, type VideoModel } from "./video.js";
-import { buildLabelsObject, pickRandomFrame, type VideoMeta } from "./payload.js";
+import { buildPayload, pickRandomFrame, type VideoMeta } from "./payload.js";
 import { submitLabelPayload } from "./label-api.js";
 import { LABEL_DEFINITIONS } from "./skeleton.js";
 
@@ -54,13 +53,20 @@ const labelView = document.getElementById("labelView") as HTMLElement;
 const comingSoonView = document.getElementById("comingSoonView") as HTMLElement;
 const comingSoonModeName = document.getElementById("comingSoonModeName") as HTMLElement;
 const binaryDemo = document.getElementById("binaryDemo") as HTMLElement;
+const labelInstructions = document.getElementById("labelInstructions") as HTMLElement;
+const focusInstructions = document.getElementById("focusInstructions") as HTMLElement;
+const labelSidebarContent = document.getElementById("labelSidebarContent") as HTMLElement;
+const focusSidebarContent = document.getElementById("focusSidebarContent") as HTMLElement;
+const focusKeypointSelect = document.getElementById("focusKeypointSelect") as HTMLSelectElement;
+const focusCountEl = document.getElementById("focusCount") as HTMLElement;
 const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-view-mode]"));
 
-type ViewMode = "binary" | "track" | "label";
+type ViewMode = "binary" | "track" | "label" | "focus";
 const VIEW_MODE_NAMES: Record<ViewMode, string> = {
     binary: "Binary",
     track: "Track",
     label: "Label",
+    focus: "Focus",
 };
 
 // Mark the overlay so we can verify the bundle actually loaded.
@@ -70,6 +76,13 @@ setStage("Booting pozu… (loading sleap-io.js bundle)");
 let videoModel: VideoModel | null = null;
 let frameIndex = 0;
 let displayScale = 1;
+
+// ---- Focus mode state ----
+let focusModeActive = false;
+let focusNodeId = LABEL_DEFINITIONS[0].id;
+let focusCount = 0;
+let focusSubmitInProgress = false;
+let prevPlacedSize = 0;
 
 const getVideoMeta = (): VideoMeta | null => videoModel?.meta ?? null;
 
@@ -84,7 +97,19 @@ const labeler = createLabeler({
 function updateSubmitReadyState() {
     downloadBtn.classList.toggle("ready", labeler.placed.size === LABEL_DEFINITIONS.length);
 }
-labeler.onChange(updateSubmitReadyState);
+
+labeler.onChange(() => {
+    const size = labeler.placed.size;
+    const added = size > prevPlacedSize;
+    prevPlacedSize = size;
+    updateSubmitReadyState();
+    if (focusModeActive && added && labeler.placed.has(focusNodeId) && !focusSubmitInProgress) {
+        focusSubmitInProgress = true;
+        doFocusSubmit().finally(() => {
+            focusSubmitInProgress = false;
+        });
+    }
+});
 updateSubmitReadyState();
 
 function setControlsEnabled(enabled: boolean) {
@@ -97,12 +122,21 @@ function setViewMode(mode: ViewMode) {
     for (const button of modeButtons) {
         button.classList.toggle("active", button.dataset.viewMode === mode);
     }
-    if (mode === "label") {
+
+    if (mode === "label" || mode === "focus") {
         labelView.hidden = false;
         comingSoonView.hidden = true;
+        focusModeActive = mode === "focus";
+        labelInstructions.hidden = mode === "focus";
+        focusInstructions.hidden = mode !== "focus";
+        labelSidebarContent.hidden = mode === "focus";
+        focusSidebarContent.hidden = mode !== "focus";
+        resetBtn.hidden = mode === "focus";
+        downloadBtn.hidden = mode === "focus";
         return;
     }
 
+    focusModeActive = false;
     labelView.hidden = true;
     comingSoonView.hidden = false;
     comingSoonModeName.textContent = VIEW_MODE_NAMES[mode];
@@ -120,15 +154,6 @@ function showStatus(type: "info" | "success" | "error", message: string) {
             }
         }, 5000);
     }
-}
-
-function encodeBytesAsBase64(bytes: Uint8Array): string {
-    let binary = "";
-    const chunkSize = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-    }
-    return btoa(binary);
 }
 
 async function showFrame(idx: number) {
@@ -198,6 +223,57 @@ async function ensureVideoModel() {
     );
 }
 
+// ---- Focus mode ----
+function buildFocusPicker() {
+    for (const def of LABEL_DEFINITIONS) {
+        const option = document.createElement("option");
+        option.value = def.id;
+        option.textContent = def.name;
+        focusKeypointSelect.appendChild(option);
+    }
+    focusKeypointSelect.addEventListener("change", () => {
+        focusNodeId = focusKeypointSelect.value;
+    });
+    focusNodeId = LABEL_DEFINITIONS[0].id;
+    focusKeypointSelect.value = focusNodeId;
+}
+
+async function doFocusSubmit() {
+    const meta = getVideoMeta();
+    if (!meta) return;
+
+    const payload = buildPayload({
+        videoUrl: VIDEO_URL,
+        frameIndex,
+        videoMeta: meta,
+        placed: labeler.placed,
+    });
+
+    setControlsEnabled(false);
+    try {
+        await submitLabelPayload(payload);
+    } catch (err) {
+        console.error("Focus submit failed:", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        showStatus("error", `Failed to submit: ${msg}`);
+        setControlsEnabled(true);
+        return;
+    }
+
+    focusCount += 1;
+    focusCountEl.textContent = `Frames labeled: ${focusCount}`;
+    statusMsg.style.display = "none";
+
+    try {
+        await loadRandomFrame();
+    } catch (err) {
+        console.error("Loading next frame failed after focus submit:", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        showStatus("error", `Labeled submitted, but failed to load next frame: ${msg}`);
+        setControlsEnabled(true);
+    }
+}
+
 // ---- Buttons ----
 newFrameBtn.addEventListener("click", () => {
     loadRandomFrame().catch((err: Error) => {
@@ -229,18 +305,16 @@ downloadBtn.addEventListener("click", async () => {
         return;
     }
 
-    const labels = buildLabelsObject({
+    const payload = buildPayload({
         videoUrl: VIDEO_URL,
         frameIndex,
         videoMeta: meta,
         placed: labeler.placed,
-        skeleton: labeler.skeleton,
     });
-    const labelsFileContent = encodeBytesAsBase64(await saveSlpToBytes(labels));
 
     setControlsEnabled(false);
     try {
-        await submitLabelPayload(VIDEO_URL, labelsFileContent);
+        await submitLabelPayload(payload);
     } catch (err) {
         console.error("Label JSON submission failed:", err);
         const msg = err instanceof Error ? err.message : String(err);
@@ -275,6 +349,8 @@ const initialHash = window.location.hash.replace(/^#/, "") as ViewMode;
 if (initialHash && initialHash in VIEW_MODE_NAMES) {
     setViewMode(initialHash);
 }
+
+buildFocusPicker();
 
 // ---- Boot ----
 (async () => {

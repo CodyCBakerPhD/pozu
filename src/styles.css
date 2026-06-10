@@ -479,3 +479,43 @@ canvas {
     margin-top: auto;
     text-align: right;
 }
+
+.sidebar-hint {
+    display: block;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 10px;
+}
+
+.focus-keypoint-select {
+    width: 100%;
+    margin-bottom: 16px;
+    padding: 9px 10px;
+    background: #0b1220;
+    border: 2px solid #334155;
+    border-radius: 6px;
+    color: #e2e8f0;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.1s;
+}
+
+.focus-keypoint-select:hover {
+    border-color: #475569;
+}
+
+.focus-keypoint-select:focus {
+    outline: none;
+    border-color: #0ea5e9;
+}
+
+.focus-count {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    font-family: monospace;
+    padding: 6px 8px;
+    background: #0b1220;
+    border-radius: 6px;
+}
