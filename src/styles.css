@@ -481,50 +481,34 @@ canvas {
 }
 
 .sidebar-hint {
+    display: block;
     font-size: 0.8rem;
     color: #94a3b8;
     margin-bottom: 10px;
 }
 
-.focus-keypoint-picker {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+.focus-keypoint-select {
+    width: 100%;
     margin-bottom: 16px;
-}
-
-.focus-keypoint-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
+    padding: 9px 10px;
     background: #0b1220;
-    border: 2px solid transparent;
+    border: 2px solid #334155;
     border-radius: 6px;
     color: #e2e8f0;
     font-family: inherit;
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
-    text-align: left;
     transition: border-color 0.1s;
 }
 
-.focus-keypoint-btn:hover {
-    border-color: #334155;
+.focus-keypoint-select:hover {
+    border-color: #475569;
 }
 
-.focus-keypoint-btn.active {
+.focus-keypoint-select:focus {
+    outline: none;
     border-color: #0ea5e9;
-}
-
-.focus-swatch {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    flex-shrink: 0;
 }
 
 .focus-count {

@@ -63,8 +63,10 @@
 
                         <div id="focusSidebarContent" hidden>
                             <h2>🎯 Focus Mode</h2>
-                            <p class="sidebar-hint">Select the keypoint to label:</p>
-                            <div class="focus-keypoint-picker" id="focusKeypointPicker"></div>
+                            <label class="sidebar-hint" for="focusKeypointSelect"
+                                >Keypoint to label (one at a time):</label
+                            >
+                            <select class="focus-keypoint-select" id="focusKeypointSelect"></select>
                             <div class="focus-count" id="focusCount">Frames labeled: 0</div>
                         </div>
 

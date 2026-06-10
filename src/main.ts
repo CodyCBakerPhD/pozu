@@ -58,7 +58,7 @@ const labelInstructions = document.getElementById("labelInstructions") as HTMLEl
 const focusInstructions = document.getElementById("focusInstructions") as HTMLElement;
 const labelSidebarContent = document.getElementById("labelSidebarContent") as HTMLElement;
 const focusSidebarContent = document.getElementById("focusSidebarContent") as HTMLElement;
-const focusKeypointPicker = document.getElementById("focusKeypointPicker") as HTMLElement;
+const focusKeypointSelect = document.getElementById("focusKeypointSelect") as HTMLSelectElement;
 const focusCountEl = document.getElementById("focusCount") as HTMLElement;
 const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-view-mode]"));
 
@@ -236,21 +236,16 @@ async function ensureVideoModel() {
 // ---- Focus mode ----
 function buildFocusPicker() {
     for (const def of LABEL_DEFINITIONS) {
-        const btn = document.createElement("button");
-        btn.className = "focus-keypoint-btn";
-        btn.dataset.nodeId = def.id;
-        btn.innerHTML = `<span class="focus-swatch" style="background:${def.color}"></span>${def.name}`;
-        btn.addEventListener("click", () => selectFocusNode(def.id));
-        focusKeypointPicker.appendChild(btn);
+        const option = document.createElement("option");
+        option.value = def.id;
+        option.textContent = def.name;
+        focusKeypointSelect.appendChild(option);
     }
-    selectFocusNode(LABEL_DEFINITIONS[0].id);
-}
-
-function selectFocusNode(id: string) {
-    focusNodeId = id;
-    for (const btn of focusKeypointPicker.querySelectorAll<HTMLElement>(".focus-keypoint-btn")) {
-        btn.classList.toggle("active", btn.dataset.nodeId === id);
-    }
+    focusKeypointSelect.addEventListener("change", () => {
+        focusNodeId = focusKeypointSelect.value;
+    });
+    focusNodeId = LABEL_DEFINITIONS[0].id;
+    focusKeypointSelect.value = focusNodeId;
 }
 
 async function doFocusSubmit() {
