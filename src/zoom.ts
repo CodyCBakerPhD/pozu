@@ -17,7 +17,8 @@
  *  - Mouse wheel over the frame zooms toward the cursor.
  *  - `+` / `-` / reset buttons (wired by the caller) and the `+`, `-`,
  *    `0` keys zoom toward the frame centre.
- *  - Middle-mouse drag, or hold <kbd>Space</kbd> and drag, pans.
+ *  - Middle-mouse drag, hold <kbd>Space</kbd> and drag, or the arrow
+ *    keys / on-screen arrow buttons pan.
  */
 
 export interface ZoomController {
@@ -25,6 +26,11 @@ export interface ZoomController {
     zoomIn(): void;
     /** Zoom out one step toward the frame centre. */
     zoomOut(): void;
+    /**
+     * Pan one step in a camera direction: `dirX = 1` looks right,
+     * `dirY = 1` looks down. No-op while not zoomed in.
+     */
+    pan(dirX: number, dirY: number): void;
     /** Reset to 1:1 with no pan. */
     reset(): void;
     /** Current scale factor (1 = fit). */
@@ -102,6 +108,15 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
         zoomTo(next, w / 2, h / 2);
     }
 
+    /** Step the view by a quarter-viewport in a camera direction. */
+    function panView(dirX: number, dirY: number): void {
+        if (scale <= 1) return;
+        const { w, h } = size();
+        tx -= dirX * w * 0.25;
+        ty -= dirY * h * 0.25;
+        apply();
+    }
+
     // ---- Wheel ----
     function onWheel(e: WheelEvent): void {
         e.preventDefault();
@@ -175,6 +190,18 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
         } else if (e.key === "0") {
             e.preventDefault();
             reset();
+        } else if (e.key === "ArrowLeft") {
+            if (scale > 1) e.preventDefault();
+            panView(-1, 0);
+        } else if (e.key === "ArrowRight") {
+            if (scale > 1) e.preventDefault();
+            panView(1, 0);
+        } else if (e.key === "ArrowUp") {
+            if (scale > 1) e.preventDefault();
+            panView(0, -1);
+        } else if (e.key === "ArrowDown") {
+            if (scale > 1) e.preventDefault();
+            panView(0, 1);
         }
     }
 
@@ -206,6 +233,7 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
     return {
         zoomIn: () => zoomCentered(scale * step),
         zoomOut: () => zoomCentered(scale / step),
+        pan: panView,
         reset,
         getScale: () => scale,
         destroy() {

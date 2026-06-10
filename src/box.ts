@@ -58,6 +58,11 @@ const zoomInBtn = document.getElementById("zoomInBtn") as HTMLButtonElement;
 const zoomOutBtn = document.getElementById("zoomOutBtn") as HTMLButtonElement;
 const zoomResetBtn = document.getElementById("zoomResetBtn") as HTMLButtonElement;
 const zoomLevel = document.getElementById("zoomLevel") as HTMLElement;
+const panLeftBtn = document.getElementById("panLeftBtn") as HTMLButtonElement;
+const panRightBtn = document.getElementById("panRightBtn") as HTMLButtonElement;
+const panUpBtn = document.getElementById("panUpBtn") as HTMLButtonElement;
+const panDownBtn = document.getElementById("panDownBtn") as HTMLButtonElement;
+const panButtons = [panLeftBtn, panRightBtn, panUpBtn, panDownBtn];
 const initialLoading = document.getElementById("initialLoading") as HTMLElement;
 const frameInfo = document.getElementById("frameInfo") as HTMLElement;
 const statusMsg = document.getElementById("statusMsg") as HTMLElement;
@@ -87,12 +92,18 @@ const zoom = createZoomController({
     content: canvasContainer,
     onChange: (scale) => {
         zoomLevel.textContent = `${Math.round(scale * 100)}%`;
+        // Pan / reset only do something while zoomed in.
         zoomResetBtn.disabled = scale === 1;
+        for (const btn of panButtons) btn.disabled = scale === 1;
     },
 });
 zoomInBtn.addEventListener("click", () => zoom.zoomIn());
 zoomOutBtn.addEventListener("click", () => zoom.zoomOut());
 zoomResetBtn.addEventListener("click", () => zoom.reset());
+panLeftBtn.addEventListener("click", () => zoom.pan(-1, 0));
+panRightBtn.addEventListener("click", () => zoom.pan(1, 0));
+panUpBtn.addEventListener("click", () => zoom.pan(0, -1));
+panDownBtn.addEventListener("click", () => zoom.pan(0, 1));
 
 function setControlsEnabled(enabled: boolean) {
     newFrameBtn.disabled = !enabled;
