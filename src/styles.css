@@ -244,8 +244,7 @@ h1 {
     cursor: inherit;
 }
 
-.zoom-controls,
-.pan-controls {
+.zoom-controls {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -254,8 +253,7 @@ h1 {
     border-radius: 6px;
 }
 
-.zoom-controls button,
-.pan-controls button {
+.zoom-controls button {
     padding: 4px 10px;
     border: none;
     border-radius: 4px;
@@ -270,24 +268,36 @@ h1 {
         box-shadow 0.2s;
 }
 
-.zoom-controls button:hover:not(:disabled),
-.pan-controls button:hover:not(:disabled) {
+.zoom-controls button:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.zoom-controls button:disabled,
-.pan-controls button:disabled {
+.zoom-controls button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.zoom-level {
-    min-width: 3.4em;
+/* Active "Pan" tool toggle. */
+.zoom-controls button.active {
+    background: #0ea5e9;
+}
+
+.frame-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.zoom-readout {
+    min-width: 3.6em;
     text-align: center;
     font-family: monospace;
     font-size: 0.85rem;
     color: #cbd5e1;
+    padding: 4px 10px;
+    background: #0b1220;
+    border-radius: 6px;
 }
 
 canvas {

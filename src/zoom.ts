@@ -17,8 +17,9 @@
  *  - Mouse wheel over the frame zooms toward the cursor.
  *  - `+` / `-` / reset buttons (wired by the caller) and the `+`, `-`,
  *    `0` keys zoom toward the frame centre.
- *  - Middle-mouse drag, hold <kbd>Space</kbd> and drag, or the arrow
- *    keys / on-screen arrow buttons pan.
+ *  - Panning: drag while "pan mode" is on (a caller-toggled tool, see
+ *    {@link ZoomController.setPanMode}), or — as always-available
+ *    shortcuts — middle-mouse drag or hold <kbd>Space</kbd> and drag.
  */
 
 export interface ZoomController {
@@ -27,10 +28,11 @@ export interface ZoomController {
     /** Zoom out one step toward the frame centre. */
     zoomOut(): void;
     /**
-     * Pan one step in a camera direction: `dirX = 1` looks right,
-     * `dirY = 1` looks down. No-op while not zoomed in.
+     * Toggle "pan mode": while on, a left-drag on the frame pans instead
+     * of placing a label / drawing a box. Middle-mouse and Space+drag pan
+     * regardless of this setting.
      */
-    pan(dirX: number, dirY: number): void;
+    setPanMode(enabled: boolean): void;
     /** Reset to 1:1 with no pan. */
     reset(): void;
     /** Current scale factor (1 = fit). */
@@ -66,6 +68,7 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
     let ty = 0;
 
     let spaceDown = false;
+    let panMode = false;
     let pan: { startX: number; startY: number; baseTx: number; baseTy: number } | null = null;
     // True once a pan has actually moved, so we can swallow the trailing
     // `click` (which would otherwise place a label / start a box).
@@ -91,6 +94,11 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
         opts.onChange?.(scale);
     }
 
+    /** Show the grab cursor whenever a left-drag would pan. */
+    function updateCursor(): void {
+        opts.viewport.classList.toggle("pan-ready", panMode || spaceDown);
+    }
+
     /** Zoom to `next`, keeping the content point under (cx, cy) fixed. */
     function zoomTo(next: number, cx: number, cy: number): void {
         next = clamp(next, min, max);
@@ -108,15 +116,6 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
         zoomTo(next, w / 2, h / 2);
     }
 
-    /** Step the view by a quarter-viewport in a camera direction. */
-    function panView(dirX: number, dirY: number): void {
-        if (scale <= 1) return;
-        const { w, h } = size();
-        tx -= dirX * w * 0.25;
-        ty -= dirY * h * 0.25;
-        apply();
-    }
-
     // ---- Wheel ----
     function onWheel(e: WheelEvent): void {
         e.preventDefault();
@@ -127,9 +126,9 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
         zoomTo(scale * factor, cx, cy);
     }
 
-    // ---- Pan (middle-mouse, or Space + drag) ----
+    // ---- Pan (pan-mode / middle-mouse / Space + drag) ----
     function onPanStart(e: MouseEvent): void {
-        const wantsPan = e.button === 1 || (e.button === 0 && spaceDown);
+        const wantsPan = e.button === 1 || (e.button === 0 && (panMode || spaceDown));
         if (!wantsPan) return;
         // Capture phase + stopPropagation keeps the page's own mousedown
         // handlers (place label / draw box) from firing for a pan.
@@ -157,9 +156,9 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
     }
 
     function onClickCapture(e: MouseEvent): void {
-        // Swallow the click that ends a Space+drag pan so it doesn't get
-        // treated as a placement.
-        if (panMoved) {
+        // Swallow the click that ends a pan drag, and any click while pan
+        // mode is on, so it isn't treated as a label placement.
+        if (panMoved || panMode) {
             panMoved = false;
             e.preventDefault();
             e.stopPropagation();
@@ -177,7 +176,7 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
     function onKeyDown(e: KeyboardEvent): void {
         if (e.code === "Space") {
             spaceDown = true;
-            opts.viewport.classList.add("pan-ready");
+            updateCursor();
             return;
         }
         if (isTypingTarget(e.target) || e.metaKey || e.ctrlKey) return;
@@ -190,25 +189,13 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
         } else if (e.key === "0") {
             e.preventDefault();
             reset();
-        } else if (e.key === "ArrowLeft") {
-            if (scale > 1) e.preventDefault();
-            panView(-1, 0);
-        } else if (e.key === "ArrowRight") {
-            if (scale > 1) e.preventDefault();
-            panView(1, 0);
-        } else if (e.key === "ArrowUp") {
-            if (scale > 1) e.preventDefault();
-            panView(0, -1);
-        } else if (e.key === "ArrowDown") {
-            if (scale > 1) e.preventDefault();
-            panView(0, 1);
         }
     }
 
     function onKeyUp(e: KeyboardEvent): void {
         if (e.code === "Space") {
             spaceDown = false;
-            opts.viewport.classList.remove("pan-ready");
+            updateCursor();
         }
     }
 
@@ -217,6 +204,11 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
         tx = 0;
         ty = 0;
         apply();
+    }
+
+    function setPanMode(enabled: boolean): void {
+        panMode = enabled;
+        updateCursor();
     }
 
     opts.viewport.addEventListener("wheel", onWheel, { passive: false });
@@ -233,7 +225,7 @@ export function createZoomController(opts: ZoomOptions): ZoomController {
     return {
         zoomIn: () => zoomCentered(scale * step),
         zoomOut: () => zoomCentered(scale / step),
-        pan: panView,
+        setPanMode,
         reset,
         getScale: () => scale,
         destroy() {

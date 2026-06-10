@@ -42,36 +42,35 @@
                         <button id="zoomOutBtn" type="button" title="Zoom out (−)" disabled>
                             −
                         </button>
-                        <span id="zoomLevel" class="zoom-level">100%</span>
                         <button id="zoomInBtn" type="button" title="Zoom in (+)" disabled>+</button>
                         <button id="zoomResetBtn" type="button" title="Reset zoom (0)" disabled>
                             ⤢ Fit
                         </button>
-                    </div>
-                    <div class="pan-controls" role="group" aria-label="Pan frame">
-                        <button id="panLeftBtn" type="button" title="Pan left (←)" disabled>
-                            ◀
-                        </button>
-                        <button id="panUpBtn" type="button" title="Pan up (↑)" disabled>▲</button>
-                        <button id="panDownBtn" type="button" title="Pan down (↓)" disabled>
-                            ▼
-                        </button>
-                        <button id="panRightBtn" type="button" title="Pan right (→)" disabled>
-                            ▶
+                        <button
+                            id="panToggleBtn"
+                            type="button"
+                            title="Pan mode — drag to move the frame"
+                            aria-pressed="false"
+                            disabled
+                        >
+                            ✋ Pan
                         </button>
                     </div>
                 </div>
 
                 <div class="main-container">
                     <div>
-                        <div class="canvas-viewport" id="canvasViewport">
-                            <div
-                                class="canvas-container"
-                                id="canvasContainer"
-                                style="display: none"
-                            >
-                                <canvas id="frameCanvas"></canvas>
+                        <div class="frame-row">
+                            <div class="canvas-viewport" id="canvasViewport">
+                                <div
+                                    class="canvas-container"
+                                    id="canvasContainer"
+                                    style="display: none"
+                                >
+                                    <canvas id="frameCanvas"></canvas>
+                                </div>
                             </div>
+                            <span id="zoomLevel" class="zoom-readout">100%</span>
                         </div>
                         <div class="loading-fullscreen" id="initialLoading">
                             <div class="spinner"></div>
