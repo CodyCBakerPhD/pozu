@@ -1,7 +1,10 @@
 import { test, expect } from "@chromatic-com/playwright";
 
+const EMBER_VIDEO_URL = "https://ember-open-data.s3.amazonaws.com/blobs/";
+
 test.describe("Pozu labeling page", () => {
     test.beforeEach(async ({ page }) => {
+        await page.route(`${EMBER_VIDEO_URL}**`, (route) => route.abort());
         await page.goto("/", { waitUntil: "domcontentloaded" });
     });
 
@@ -116,6 +119,7 @@ test.describe("Pozu labeling page", () => {
 
 test.describe("Pozu box-selection page", () => {
     test.beforeEach(async ({ page }) => {
+        await page.route(`${EMBER_VIDEO_URL}**`, (route) => route.abort());
         await page.goto("/box.html", { waitUntil: "domcontentloaded" });
     });
 
