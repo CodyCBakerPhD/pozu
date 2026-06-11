@@ -538,9 +538,11 @@ canvas {
     display: flex;
     align-items: center;
     justify-content: center;
+    min-width: 720px;
     min-height: 360px;
     color: #94a3b8;
     font-size: 0.95rem;
+    line-height: normal;
 }
 
 .spinner {

@@ -80,6 +80,10 @@
                     <div>
                         <div class="frame-row">
                             <div class="canvas-viewport" id="canvasViewport">
+                                <div class="loading-fullscreen" id="initialLoading">
+                                    <div class="spinner"></div>
+                                    Loading the EMBER video & extracting a random frame…
+                                </div>
                                 <div
                                     class="canvas-container"
                                     id="canvasContainer"
@@ -118,10 +122,6 @@
                                     ⤢
                                 </button>
                             </div>
-                        </div>
-                        <div class="loading-fullscreen" id="initialLoading">
-                            <div class="spinner"></div>
-                            Loading the EMBER video & extracting a random frame…
                         </div>
                         <div class="bottom-actions">
                             <button id="newFrameBtn" disabled>🚫 No Subject Present</button>
