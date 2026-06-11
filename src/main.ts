@@ -86,30 +86,44 @@ let displayScale = 1;
 // ---- Next-frame prefetch ----
 // The expensive step between labelings is the HTML5 `<video>` seek inside
 // `getFrame`. Frames are picked at random so the *exact* next index isn't
-// known ahead of time, but we can pre-pick one and decode it in the
+// known ahead of time, but we can pre-pick several and decode them in the
 // background while the user labels the current frame. `loadRandomFrame`
-// then consumes that already-decoded bitmap instead of seeking fresh. The
-// first frame of a session still pays full price; every subsequent one is
-// (usually) instant.
+// consumes from the front of the queue; each consumed slot is replaced so
+// the queue stays topped up. Seeks against the single `<video>` element
+// are serialised by the backend, so the queued decodes run back-to-back
+// asynchronously without racing each other. The first frame of a session
+// still pays full price; subsequent ones are (usually) instant.
+//
+// Memory cost is bounded: at ~1280×720 RGBA a decoded bitmap is ~3.7 MB,
+// so a full queue is well under 50 MB.
+const PREFETCH_DEPTH = 10;
+
 interface PrefetchedFrame {
     idx: number;
     promise: Promise<ImageBitmap | null>;
 }
-let prefetched: PrefetchedFrame | null = null;
+const prefetchQueue: PrefetchedFrame[] = [];
 
-function startPrefetch() {
-    if (!videoModel) return;
-    const total = videoModel.meta.totalFrames;
+function topUpPrefetch() {
+    const model = videoModel;
+    if (!model) return;
+    const total = model.meta.totalFrames;
     if (total < 2) return;
-    const idx = pickRandomFrame(total, frameIndex);
-    // Swallow failures here so a bad background seek doesn't surface as an
-    // unhandled rejection; `loadRandomFrame` falls back to a fresh decode
-    // when the prefetched bitmap is null.
-    const promise = videoModel.video.getFrame(idx).catch((err) => {
-        console.warn(`[pozu] prefetch of frame ${idx} failed:`, err);
-        return null;
-    });
-    prefetched = { idx, promise };
+    // Pick relative to the last already-queued (or current) frame so we
+    // don't enqueue the same index back-to-back.
+    let prev = prefetchQueue.length > 0 ? prefetchQueue[prefetchQueue.length - 1].idx : frameIndex;
+    while (prefetchQueue.length < PREFETCH_DEPTH) {
+        const idx = pickRandomFrame(total, prev);
+        prev = idx;
+        // Swallow failures so a bad background seek doesn't surface as an
+        // unhandled rejection; consumers skip null bitmaps and fall back to
+        // a fresh decode.
+        const promise = model.video.getFrame(idx).catch((err) => {
+            console.warn(`[pozu] prefetch of frame ${idx} failed:`, err);
+            return null;
+        });
+        prefetchQueue.push({ idx, promise });
+    }
 }
 
 // ---- Focus mode state ----
@@ -267,8 +281,8 @@ async function showFrame(idx: number, bitmapPromise?: Promise<ImageBitmap | null
     setControlsEnabled(true);
 
     // Current frame is painted; the `<video>` is now free to seek ahead.
-    // Kick off decoding of the next random frame in the background.
-    startPrefetch();
+    // Refill the background-decode queue.
+    topUpPrefetch();
 }
 
 async function loadRandomFrame() {
@@ -283,17 +297,17 @@ async function loadRandomFrame() {
         return;
     }
 
-    // Resolve the next frame, preferring the background-decoded one. A
-    // single seek can fail or time out — deep seeks into the remote MP4 are
-    // flaky — so fall back to freshly-picked frames instead of dead-ending
-    // on "no data" for one unlucky index.
+    // Resolve the next frame, preferring background-decoded ones from the
+    // front of the queue. A single seek can fail or time out — deep seeks
+    // into the remote MP4 are flaky — so skip null bitmaps and ultimately
+    // fall back to freshly-picked frames instead of dead-ending on "no
+    // data" for one unlucky index.
     let idx = -1;
     let bitmap: ImageBitmap | null = null;
-    if (prefetched) {
-        ({ idx } = prefetched);
-        const { promise } = prefetched;
-        prefetched = null;
-        bitmap = await promise;
+    while (bitmap == null && prefetchQueue.length > 0) {
+        const head = prefetchQueue.shift()!;
+        idx = head.idx;
+        bitmap = await head.promise;
     }
     for (let tries = 0; bitmap == null && tries < 4; tries++) {
         idx = pickRandomFrame(total, frameIndex);
