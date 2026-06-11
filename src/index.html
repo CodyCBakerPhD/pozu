@@ -14,15 +14,40 @@
                     <span>Pozu</span>
                 </a>
                 <nav class="top-nav-links" aria-label="View modes">
-                    <button class="top-nav-link" data-view-mode="binary" type="button">
-                        Binary
-                    </button>
-                    <button class="top-nav-link" data-view-mode="track" type="button">Track</button>
-                    <a class="top-nav-link" href="./box.html">Box</a>
-                    <button class="top-nav-link" data-view-mode="focus" type="button">Focus</button>
-                    <button class="top-nav-link active" data-view-mode="label" type="button">
-                        Label
-                    </button>
+                    <div class="nav-section nav-section--label">
+                        <span class="nav-section-title">Label</span>
+                        <div class="nav-section-tabs">
+                            <button class="top-nav-link" data-view-mode="focus" type="button">
+                                Focus
+                            </button>
+                            <button
+                                class="top-nav-link active"
+                                data-view-mode="label"
+                                type="button"
+                            >
+                                Full Skeleton
+                            </button>
+                            <a class="top-nav-link" href="./box.html">Box</a>
+                        </div>
+                    </div>
+                    <div class="nav-section nav-section--train">
+                        <span class="nav-section-title">Train</span>
+                        <div class="nav-section-tabs">
+                            <button class="top-nav-link" type="button" disabled>Models</button>
+                            <button class="top-nav-link" type="button" disabled>Inference</button>
+                        </div>
+                    </div>
+                    <div class="nav-section nav-section--curate">
+                        <span class="nav-section-title">Curate</span>
+                        <div class="nav-section-tabs">
+                            <button class="top-nav-link" data-view-mode="binary" type="button">
+                                Binary
+                            </button>
+                            <button class="top-nav-link" data-view-mode="track" type="button">
+                                Track
+                            </button>
+                        </div>
+                    </div>
                 </nav>
             </div>
         </header>

@@ -15,6 +15,14 @@ test.describe("Pozu labeling page", () => {
         await expect(page.locator(".page-credit")).toContainText("sleap-io.js");
     });
 
+    test("shows three top-level nav section titles", async ({ page }) => {
+        const titles = page.locator(".nav-section-title");
+        await expect(titles).toHaveCount(3);
+        await expect(titles.nth(0)).toHaveText("Label");
+        await expect(titles.nth(1)).toHaveText("Train");
+        await expect(titles.nth(2)).toHaveText("Curate");
+    });
+
     test("serves the nav logo asset", async ({ page }) => {
         const response = await page.request.get("/pozu-logo.svg");
         expect(response.ok()).toBe(true);
@@ -186,8 +194,10 @@ test.describe("Pozu box-selection page", () => {
         expect(borderColor).toBe("rgb(34, 197, 94)");
     });
 
-    test("Label link in the nav points back to the labeling page", async ({ page }) => {
-        const labelLink = page.locator('a.top-nav-link[href$="index.html"]', { hasText: "Label" });
+    test("Full Skeleton link in the nav points back to the labeling page", async ({ page }) => {
+        const labelLink = page.locator('a.top-nav-link[href$="index.html"]', {
+            hasText: "Full Skeleton",
+        });
         await expect(labelLink).toBeVisible();
         await labelLink.click();
         await expect(page).toHaveURL(/\/(index\.html)?$/);
