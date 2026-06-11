@@ -31,10 +31,16 @@ jobs:
               run: npx playwright install --with-deps chromium
 
             - name: Run Playwright tests
-              run: npm run test:e2e
+              env:
+                  CHROMATIC_ARCHIVE_LOCATION: test-results
+              run: |
+                  rm -rf test-results/chromatic-archives
+                  npm run test:e2e -- --retries=0
 
             - name: Run Chromatic (Playwright)
               uses: chromaui/action@latest
+              env:
+                  CHROMATIC_ARCHIVE_LOCATION: test-results
               with:
                   projectToken: ${{ secrets.CHROMATIC_PLAYWRIGHT_PROJECT_TOKEN }}
                   playwright: true
