@@ -2,7 +2,7 @@ import { test, expect } from "@chromatic-com/playwright";
 
 test.describe("Pozu labeling page", () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto("/");
+        await page.goto("/", { waitUntil: "domcontentloaded" });
     });
 
     test("renders top nav title and page credit", async ({ page }) => {
@@ -116,7 +116,7 @@ test.describe("Pozu labeling page", () => {
 
 test.describe("Pozu box-selection page", () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto("/box.html");
+        await page.goto("/box.html", { waitUntil: "domcontentloaded" });
     });
 
     test("renders the box page chrome with Box active in the nav", async ({ page }) => {
