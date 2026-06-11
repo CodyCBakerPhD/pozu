@@ -36,9 +36,11 @@ jobs:
                   echo "has_storybook=${HAS_STORYBOOK}" >> "${GITHUB_OUTPUT}"
                   echo "has_token=${HAS_TOKEN}" >> "${GITHUB_OUTPUT}"
 
-            - name: Skip when Storybook or token is missing
+            - name: Fail when Storybook or token is missing
               if: ${{ steps.detect.outputs.has_storybook != 'true' || steps.detect.outputs.has_token != 'true' }}
-              run: echo "Skipping Chromatic (missing Storybook setup or CHROMATIC_PROJECT_TOKEN secret)."
+              run: |
+                  echo "Chromatic requires Storybook setup and CHROMATIC_PROJECT_TOKEN secret."
+                  exit 1
 
             - name: Set up Node.js
               if: ${{ steps.detect.outputs.has_storybook == 'true' && steps.detect.outputs.has_token == 'true' }}
