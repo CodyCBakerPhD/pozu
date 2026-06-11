@@ -1,4 +1,4 @@
-import "../src/styles.css";
+import "../../src/styles.css";
 
 const preview = {};
 
