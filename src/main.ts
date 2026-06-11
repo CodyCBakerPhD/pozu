@@ -83,6 +83,49 @@ let videoModel: VideoModel | null = null;
 let frameIndex = 0;
 let displayScale = 1;
 
+// ---- Next-frame prefetch ----
+// The expensive step between labelings is the HTML5 `<video>` seek inside
+// `getFrame`. Frames are picked at random so the *exact* next index isn't
+// known ahead of time, but we can pre-pick several and decode them in the
+// background while the user labels the current frame. `loadRandomFrame`
+// consumes from the front of the queue; each consumed slot is replaced so
+// the queue stays topped up. Seeks against the single `<video>` element
+// are serialised by the backend, so the queued decodes run back-to-back
+// asynchronously without racing each other. The first frame of a session
+// still pays full price; subsequent ones are (usually) instant.
+//
+// Memory cost is bounded: at ~1280×720 RGBA a decoded bitmap is ~3.7 MB,
+// so a full queue is well under 50 MB.
+const PREFETCH_DEPTH = 10;
+
+interface PrefetchedFrame {
+    idx: number;
+    promise: Promise<ImageBitmap | null>;
+}
+const prefetchQueue: PrefetchedFrame[] = [];
+
+function topUpPrefetch() {
+    const model = videoModel;
+    if (!model) return;
+    const total = model.meta.totalFrames;
+    if (total < 2) return;
+    // Pick relative to the last already-queued (or current) frame so we
+    // don't enqueue the same index back-to-back.
+    let prev = prefetchQueue.length > 0 ? prefetchQueue[prefetchQueue.length - 1].idx : frameIndex;
+    while (prefetchQueue.length < PREFETCH_DEPTH) {
+        const idx = pickRandomFrame(total, prev);
+        prev = idx;
+        // Swallow failures so a bad background seek doesn't surface as an
+        // unhandled rejection; consumers skip null bitmaps and fall back to
+        // a fresh decode.
+        const promise = model.video.getFrame(idx).catch((err) => {
+            console.warn(`[pozu] prefetch of frame ${idx} failed:`, err);
+            return null;
+        });
+        prefetchQueue.push({ idx, promise });
+    }
+}
+
 // ---- Focus mode state ----
 let focusModeActive = false;
 let focusNodeId = LABEL_DEFINITIONS[0].id;
@@ -192,12 +235,12 @@ function showStatus(type: "info" | "success" | "error", message: string) {
     }
 }
 
-async function showFrame(idx: number) {
+async function showFrame(idx: number, bitmapPromise?: Promise<ImageBitmap | null>) {
     if (!videoModel) return;
     setControlsEnabled(false);
     frameInfo.textContent = `Decoding frame ${idx}…`;
 
-    const bitmap = await videoModel.video.getFrame(idx);
+    const bitmap = await (bitmapPromise ?? videoModel.video.getFrame(idx));
     if (bitmap == null) {
         showStatus("error", `Backend returned no data for frame ${idx}.`);
         initialLoading.style.display = "none";
@@ -236,6 +279,10 @@ async function showFrame(idx: number) {
     frameInfo.textContent =
         `Frame ${idx} / ${meta.totalFrames}  ` + `(${w}×${h} @ ${meta.fps.toFixed(2)} fps)`;
     setControlsEnabled(true);
+
+    // Current frame is painted; the `<video>` is now free to seek ahead.
+    // Refill the background-decode queue.
+    topUpPrefetch();
 }
 
 async function loadRandomFrame() {
@@ -249,7 +296,28 @@ async function loadRandomFrame() {
         await showFrame(0);
         return;
     }
-    await showFrame(pickRandomFrame(total, frameIndex));
+
+    // Resolve the next frame, preferring background-decoded ones from the
+    // front of the queue. A single seek can fail or time out — deep seeks
+    // into the remote MP4 are flaky — so skip null bitmaps and ultimately
+    // fall back to freshly-picked frames instead of dead-ending on "no
+    // data" for one unlucky index.
+    let idx = -1;
+    let bitmap: ImageBitmap | null = null;
+    while (bitmap == null && prefetchQueue.length > 0) {
+        const head = prefetchQueue.shift()!;
+        idx = head.idx;
+        bitmap = await head.promise;
+    }
+    for (let tries = 0; bitmap == null && tries < 4; tries++) {
+        idx = pickRandomFrame(total, frameIndex);
+        try {
+            bitmap = await videoModel.video.getFrame(idx);
+        } catch (err) {
+            console.warn(`[pozu] decode of frame ${idx} failed; retrying:`, err);
+        }
+    }
+    await showFrame(idx, Promise.resolve(bitmap));
 }
 
 async function ensureVideoModel() {
