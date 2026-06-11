@@ -83,6 +83,35 @@ let videoModel: VideoModel | null = null;
 let frameIndex = 0;
 let displayScale = 1;
 
+// ---- Next-frame prefetch ----
+// The expensive step between labelings is the HTML5 `<video>` seek inside
+// `getFrame`. Frames are picked at random so the *exact* next index isn't
+// known ahead of time, but we can pre-pick one and decode it in the
+// background while the user labels the current frame. `loadRandomFrame`
+// then consumes that already-decoded bitmap instead of seeking fresh. The
+// first frame of a session still pays full price; every subsequent one is
+// (usually) instant.
+interface PrefetchedFrame {
+    idx: number;
+    promise: Promise<ImageBitmap | null>;
+}
+let prefetched: PrefetchedFrame | null = null;
+
+function startPrefetch() {
+    if (!videoModel) return;
+    const total = videoModel.meta.totalFrames;
+    if (total < 2) return;
+    const idx = pickRandomFrame(total, frameIndex);
+    // Swallow failures here so a bad background seek doesn't surface as an
+    // unhandled rejection; `loadRandomFrame` falls back to a fresh decode
+    // when the prefetched bitmap is null.
+    const promise = videoModel.video.getFrame(idx).catch((err) => {
+        console.warn(`[pozu] prefetch of frame ${idx} failed:`, err);
+        return null;
+    });
+    prefetched = { idx, promise };
+}
+
 // ---- Focus mode state ----
 let focusModeActive = false;
 let focusNodeId = LABEL_DEFINITIONS[0].id;
@@ -192,12 +221,12 @@ function showStatus(type: "info" | "success" | "error", message: string) {
     }
 }
 
-async function showFrame(idx: number) {
+async function showFrame(idx: number, bitmapPromise?: Promise<ImageBitmap | null>) {
     if (!videoModel) return;
     setControlsEnabled(false);
     frameInfo.textContent = `Decoding frame ${idx}…`;
 
-    const bitmap = await videoModel.video.getFrame(idx);
+    const bitmap = await (bitmapPromise ?? videoModel.video.getFrame(idx));
     if (bitmap == null) {
         showStatus("error", `Backend returned no data for frame ${idx}.`);
         initialLoading.style.display = "none";
@@ -236,6 +265,10 @@ async function showFrame(idx: number) {
     frameInfo.textContent =
         `Frame ${idx} / ${meta.totalFrames}  ` + `(${w}×${h} @ ${meta.fps.toFixed(2)} fps)`;
     setControlsEnabled(true);
+
+    // Current frame is painted; the `<video>` is now free to seek ahead.
+    // Kick off decoding of the next random frame in the background.
+    startPrefetch();
 }
 
 async function loadRandomFrame() {
@@ -247,6 +280,15 @@ async function loadRandomFrame() {
     if (total < 2) {
         console.warn(`Backend reports ${total} frame(s); falling back to frame 0.`);
         await showFrame(0);
+        return;
+    }
+
+    // Use the background-decoded frame if one is ready; otherwise decode a
+    // freshly-picked random frame inline.
+    if (prefetched) {
+        const { idx, promise } = prefetched;
+        prefetched = null;
+        await showFrame(idx, promise);
         return;
     }
     await showFrame(pickRandomFrame(total, frameIndex));
