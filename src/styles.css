@@ -31,8 +31,26 @@ body {
     justify-content: flex-start;
 }
 
-.top-nav-github {
+.top-nav-con {
     margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    opacity: 0.75;
+    transition: opacity 0.15s;
+}
+
+.top-nav-con:hover {
+    opacity: 1;
+}
+
+.top-nav-con-logo {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
+}
+
+.top-nav-github {
     display: inline-flex;
     align-items: center;
     color: #94a3b8;
