@@ -1,7 +1,7 @@
 {
     "name": "pozu",
     "version": "0.1.0",
-    "description": "Random EMBER frame labeling page.",
+    "description": "A web app for model-agnostic cloud-based crowd-sourced pose estimation.",
     "private": true,
     "type": "module",
     "scripts": {
