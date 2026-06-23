@@ -29,4 +29,3 @@ export const EDGE_DEFINITIONS: ReadonlyArray<readonly [string, string]> = [
     ["tail_base", "left_hind_paw"],
     ["tail_base", "right_hind_paw"],
 ];
-

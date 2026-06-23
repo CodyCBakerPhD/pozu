@@ -69,4 +69,3 @@ describe("pickRandomFrame", () => {
         expect(result).toBe(70);
     });
 });
-
