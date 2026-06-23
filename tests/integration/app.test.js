@@ -31,6 +31,22 @@ test.describe("Pozu labeling page", () => {
         expect(response.headers()["content-type"]).toContain("image/svg+xml");
     });
 
+    test("shows CON branding badge", async ({ page }) => {
+        const conLink = page.locator(".con-badge");
+        await expect(conLink).toBeVisible();
+        await expect(conLink).toHaveAttribute("href", "https://centerforopenneuroscience.org");
+        await expect(page.locator(".con-badge .con-badge-logo")).toHaveAttribute(
+            "src",
+            /\/assets\/con-logo\.svg$/
+        );
+    });
+
+    test("serves the CON logo asset", async ({ page }) => {
+        const response = await page.request.get("/assets/con-logo.svg");
+        expect(response.ok()).toBe(true);
+        expect(response.headers()["content-type"]).toContain("image/svg+xml");
+    });
+
     test("shows the three primary controls", async ({ page }) => {
         for (const id of ["#newFrameBtn", "#resetBtn", "#downloadBtn"]) {
             await expect(page.locator(id)).toBeVisible();
