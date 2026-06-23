@@ -31,6 +31,24 @@ body {
     justify-content: flex-start;
 }
 
+.top-nav-github {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    color: #94a3b8;
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.top-nav-github:hover {
+    color: #f8fafc;
+}
+
+.top-nav-github svg {
+    width: 24px;
+    height: 24px;
+}
+
 .top-nav-brand {
     font-size: 1.1rem;
     font-weight: 700;
