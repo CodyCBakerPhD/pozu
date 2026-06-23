@@ -1,7 +1,7 @@
 {
     "name": "pozu",
     "version": "0.1.0",
-    "description": "Random EMBER frame labeling page, plus a Flask annotation receiver.",
+    "description": "Random EMBER frame labeling page.",
     "private": true,
     "type": "module",
     "scripts": {
