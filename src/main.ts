@@ -64,7 +64,6 @@ const labelView = document.getElementById("labelView") as HTMLElement;
 const comingSoonView = document.getElementById("comingSoonView") as HTMLElement;
 const comingSoonModeName = document.getElementById("comingSoonModeName") as HTMLElement;
 const binaryDemo = document.getElementById("binaryDemo") as HTMLElement;
-const labelInstructions = document.getElementById("labelInstructions") as HTMLElement;
 const focusInstructions = document.getElementById("focusInstructions") as HTMLElement;
 const labelSidebarContent = document.getElementById("labelSidebarContent") as HTMLElement;
 const focusSidebarContent = document.getElementById("focusSidebarContent") as HTMLElement;
@@ -256,7 +255,6 @@ function setViewMode(mode: ViewMode) {
         labelView.hidden = false;
         comingSoonView.hidden = true;
         focusModeActive = mode === "focus";
-        labelInstructions.hidden = mode === "focus";
         focusInstructions.hidden = mode !== "focus";
         labelSidebarContent.hidden = mode === "focus";
         focusSidebarContent.hidden = mode !== "focus";
