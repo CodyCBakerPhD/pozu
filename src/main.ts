@@ -11,6 +11,10 @@ import { submitLabelPayload } from "./label-api.js";
 import { LABEL_DEFINITIONS } from "./skeleton.js";
 import { initAuthControl, renderAuthControl, isSignedIn, AuthError } from "./auth.js";
 
+// ---- Version badge ----
+(document.getElementById("versionBadge") as HTMLElement).textContent =
+    `v${__APP_VERSION__}`;
+
 // ---- Diagnostics ----
 // Surface module-evaluation / async errors directly into the loading
 // overlay so failures on the deployed preview don't silently hang.
