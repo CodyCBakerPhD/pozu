@@ -652,10 +652,12 @@ initAuthControl();
 // ---- Boot ----
 (async () => {
     if (isSignedIn()) {
-        // In dev-mode the no-subject and submit buttons stay permanently disabled.
-        if (!DEV_MODE) newFrameBtn.hidden = false;
+        newFrameBtn.hidden = false;
         downloadBtn.hidden = false;
-        if (DEV_MODE) downloadBtn.disabled = true;
+        if (DEV_MODE) {
+            newFrameBtn.disabled = true;
+            downloadBtn.disabled = true;
+        }
     }
     try {
         await ensureVideoModel();
