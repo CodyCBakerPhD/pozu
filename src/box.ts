@@ -20,6 +20,10 @@ import { buildBoxPayload, normaliseBox, clampBox, type Box } from "./box-payload
 import { submitBoxPayload } from "./box-api.js";
 import { initAuthControl, renderAuthControl, isSignedIn, AuthError } from "./auth.js";
 
+// ---- Version badge ----
+(document.getElementById("versionBadge") as HTMLElement).textContent =
+    `v${__APP_VERSION__}`;
+
 // ---- Diagnostics ----
 // Mirror main.ts so failures on the deployed preview surface in the
 // loading overlay instead of silently hanging.
