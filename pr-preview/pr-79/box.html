@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Pozu — Box Selection</title>
+      <script type="module" crossorigin src="./assets/box-DniZj3Vl.js"></script>
+      <link rel="modulepreload" crossorigin href="./assets/auth-CzFASspj.js">
+      <link rel="stylesheet" crossorigin href="./assets/auth-Cr9SLgke.css">
+    </head>
+    <body>
+        <header class="top-nav">
+            <div class="top-nav-inner">
+                <a class="top-nav-brand" href="./index.html" aria-label="Pozu home">
+                    <img
+                        class="top-nav-logo"
+                        src="./assets/pozu-logo-CFlbegVO.svg"
+                        alt=""
+                        aria-hidden="true"
+                    />
+                    <span>Pozu</span>
+                </a>
+                <nav class="top-nav-links" aria-label="View modes">
+                    <div class="nav-section nav-section--label">
+                        <span class="nav-section-title">Label</span>
+                        <div class="nav-section-tabs">
+                            <a class="top-nav-link" href="./index.html#focus">Focus</a>
+                            <a class="top-nav-link" href="./index.html">Full Skeleton</a>
+                            <a class="top-nav-link active" href="./box.html" aria-current="page"
+                                >Box</a
+                            >
+                        </div>
+                    </div>
+                    <div class="nav-section nav-section--train">
+                        <span class="nav-section-title">Train</span>
+                        <div class="nav-section-tabs">
+                            <button class="top-nav-link" type="button" disabled>Models</button>
+                            <button class="top-nav-link" type="button" disabled>Inference</button>
+                        </div>
+                    </div>
+                    <div class="nav-section nav-section--curate">
+                        <span class="nav-section-title">Curate</span>
+                        <div class="nav-section-tabs">
+                            <a class="top-nav-link" href="./index.html#binary" data-always-disabled aria-disabled="true" tabindex="-1">Binary</a>
+                            <a class="top-nav-link" href="./index.html#track" data-always-disabled aria-disabled="true" tabindex="-1">Track</a>
+                        </div>
+                    </div>
+                    <div class="nav-section nav-section--testing">
+                        <div class="nav-section-tabs">
+                            <a class="top-nav-link" href="./testing.html" data-no-auth-gate>Testing</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="top-nav-auth" id="authControl">
+                    <button
+                        class="auth-signin"
+                        id="authBtn"
+                        type="button"
+                        title="Sign in"
+                        aria-label="Sign in"
+                    >
+                        <img class="auth-avatar" id="authAvatar" alt="" hidden />
+                        <span class="auth-label" id="authLabel">Sign in</span>
+                    </button>
+                </div>
+                <a
+                    class="top-nav-github"
+                    href="https://github.com/CodyCBakerPhD/pozu"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="View source on GitHub"
+                >
+                    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <path
+                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+                        />
+                    </svg>
+                </a>
+            </div>
+        </header>
+
+        <main class="view-shell">
+            <section id="boxView" class="coming-soon">
+                <p>There are no frames which currently require box annotations. Please check back another time.</p>
+            </section>
+
+            <dialog id="errorModal" class="error-modal" aria-labelledby="errorModalTitle">
+                <h2 id="errorModalTitle">We&rsquo;re sorry</h2>
+                <p id="errorModalMessage">
+                    Something went wrong. Please submit an issue at the GitHub issues link.
+                </p>
+                <p>
+                    <a
+                        href="https://github.com/CodyCBakerPhD/pozu/issues"
+                        target="_blank"
+                        rel="noopener"
+                        >Open GitHub issues</a
+                    >
+                </p>
+                <form method="dialog">
+                    <button id="errorModalCloseBtn">Close</button>
+                </form>
+            </dialog>
+        </main>
+
+        <dialog id="signInModal" class="signin-modal" aria-labelledby="signInModalTitle">
+            <h2 id="signInModalTitle">Sign in</h2>
+            <p class="signin-modal-hint">Choose a sign-in method to continue.</p>
+            <div class="signin-methods">
+                <button class="signin-method" id="signInGitHubBtn" type="button">
+                    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <path
+                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+                        />
+                    </svg>
+                    <span>Continue with GitHub</span>
+                </button>
+            </div>
+            <form method="dialog" class="signin-modal-actions">
+                <button class="signin-modal-cancel" value="cancel">Cancel</button>
+            </form>
+        </dialog>
+
+        <span class="version-badge" id="versionBadge"></span>
+
+        <a
+            class="con-badge"
+            href="https://centerforopenneuroscience.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Center for Open Neuroscience"
+        >
+            <img
+                class="con-badge-logo"
+                src="./assets/con-logo-F8_OuRqh.png"
+                alt="Center for Open Neuroscience"
+            />
+        </a>
+
+    </body>
+</html>
