@@ -227,7 +227,7 @@ labeler.onChange(() => {
                 : null
         );
     }
-    if (focusModeActive && added && labeler.placed.has(focusNodeId) && !focusSubmitInProgress) {
+    if (!DEV_MODE && focusModeActive && added && labeler.placed.has(focusNodeId) && !focusSubmitInProgress) {
         focusSubmitInProgress = true;
         doFocusSubmit().finally(() => {
             focusSubmitInProgress = false;
