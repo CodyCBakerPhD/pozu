@@ -21,8 +21,7 @@ import { submitBoxPayload } from "./box-api.js";
 import { initAuthControl } from "./auth.js";
 
 // ---- Version badge ----
-(document.getElementById("versionBadge") as HTMLElement).textContent =
-    `v${__APP_VERSION__}`;
+(document.getElementById("versionBadge") as HTMLElement).textContent = `v${__APP_VERSION__}`;
 
 // ---- Diagnostics ----
 // Mirror main.ts so failures on the deployed preview surface in the
@@ -223,6 +222,38 @@ document.addEventListener("mouseup", commitDrag);
 // Releasing outside the viewport also ends the drag.
 window.addEventListener("blur", commitDrag);
 
+// ---- Frame sizing ----
+// Keep in sync with `.view-shell` / `.top-nav-inner` max-width in styles.css.
+const SHELL_MAX_WIDTH = 2288;
+// Horizontal space the frame can't use: shell padding, the zoom rail, and the
+// gaps around them. The box view has no sidebar, so less is reserved than in
+// the label view.
+const FRAME_RESERVED_WIDTH = 100;
+// Vertical space outside the frame: the top nav, instructions, shell padding,
+// and the controls below the frame.
+const FRAME_RESERVED_HEIGHT = 260;
+const MIN_FRAME_WIDTH = 360;
+// The EMBER frames are only 960×540, so filling a wide window means upscaling.
+// Cap it so the frame doesn't get unusably soft on very large monitors.
+const MAX_FRAME_SCALE = 2;
+
+// Scale the frame to fill the available viewport box — both width and height,
+// upscaling past native resolution when there's room — so it fills the screen
+// instead of sitting at a fixed size.
+function fitCanvasToViewport(): void {
+    if (!videoModel) return;
+    const { width: w, height: h } = videoModel.meta;
+    if (!w || !h) return;
+    const availW = Math.max(
+        MIN_FRAME_WIDTH,
+        Math.min(window.innerWidth, SHELL_MAX_WIDTH) - 40 - FRAME_RESERVED_WIDTH
+    );
+    const availH = Math.max(240, window.innerHeight - FRAME_RESERVED_HEIGHT);
+    const scale = Math.min(availW / w, availH / h, MAX_FRAME_SCALE);
+    canvas.style.width = `${w * scale}px`;
+    canvas.style.height = `${h * scale}px`;
+}
+
 // ---- Frame loading (mirrors main.ts) ----
 async function showFrame(idx: number) {
     if (!videoModel) return;
@@ -251,10 +282,7 @@ async function showFrame(idx: number) {
         ctx.putImageData(bitmap, 0, 0);
     }
 
-    const maxDisplayWidth = 720;
-    const scale = Math.min(maxDisplayWidth / w, 1);
-    canvas.style.width = `${w * scale}px`;
-    canvas.style.height = `${h * scale}px`;
+    fitCanvasToViewport();
 
     frameIndex = idx;
     box = null;
@@ -353,9 +381,12 @@ downloadBtn.addEventListener("click", async () => {
     }
 });
 
-// Re-render the overlay when the viewport resizes so the rectangle
-// stays glued to the frame.
+// Re-fit the frame to the window on resize so it keeps filling the row, then
+// re-render the overlay so the rectangle stays glued to the frame.
 window.addEventListener("resize", () => {
+    if (canvasContainer.style.display === "none") return;
+    fitCanvasToViewport();
+    zoom.reset();
     if (box) renderBoxOverlay();
 });
 
