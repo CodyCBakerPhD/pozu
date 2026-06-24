@@ -1,5 +1,11 @@
 # Upcoming
 
+- Reserved the fit-to-window frame area before the video loads so the page no longer flickers on
+  arrival: the loading placeholder (and sidebar) are now sized to the same box the first frame will
+  occupy, derived from the default 960×540 dimensions, instead of a small fixed 720×360 placeholder
+  that jumped to full size once the frame painted. Smaller or odd-shaped videos are padded into this
+  allocation. Applies to both the labeling and box views
+  ([#72](https://github.com/pozu-project/pozu/issues/72)).
 - Fixed a bug where points placed on the full skeleton (label) view lingered on the frame after
   switching to focus mode; the canvas now resets whenever the labeling context flips between the
   label and focus workflows ([#69](https://github.com/pozu-project/pozu/issues/69)).

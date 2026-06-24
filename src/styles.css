@@ -855,8 +855,12 @@ canvas {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 720px;
-    min-height: 360px;
+    /* Width/height are set in JS (reserveFrameSpace) to the fit-to-window frame
+       box, so the placeholder occupies the same space the loaded frame will and
+       the page doesn't jump when the first frame paints. These are pre-JS
+       fallbacks only. */
+    min-width: 320px;
+    min-height: 180px;
     color: #94a3b8;
     font-size: 0.95rem;
     line-height: normal;
