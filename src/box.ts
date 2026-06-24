@@ -18,7 +18,7 @@ import { createZoomController } from "./zoom.js";
 import { pickRandomFrame, type VideoMeta } from "./payload.js";
 import { buildBoxPayload, normaliseBox, clampBox, type Box } from "./box-payload.js";
 import { submitBoxPayload } from "./box-api.js";
-import { initAuthControl, renderAuthControl, isSignedIn, AuthError } from "./auth.js";
+import { initAuthControl, renderAuthControl, isSignedIn, onAuthChange, notifyAuthChange, AuthError } from "./auth.js";
 
 // ---- Version badge ----
 (document.getElementById("versionBadge") as HTMLElement).textContent =
@@ -35,10 +35,7 @@ function showFatal(label: string, err: unknown): void {
         overlay.textContent = `❌ ${label}: ${msg}. See the browser console for details; click 🚫 No Subject Present to retry.`;
         overlay.style.display = "flex";
     }
-    for (const id of ["newFrameBtn", "resetBtn", "downloadBtn"]) {
-        const btn = document.getElementById(id) as HTMLButtonElement | null;
-        if (btn) btn.disabled = false;
-    }
+    setControlsEnabled(true);
 }
 window.addEventListener("error", (e) => showFatal("Uncaught error", e.error ?? e.message));
 window.addEventListener("unhandledrejection", (e) =>
@@ -116,12 +113,20 @@ panToggleBtn.addEventListener("click", () =>
     setPanMode(!panToggleBtn.classList.contains("active"))
 );
 
-function setControlsEnabled(enabled: boolean) {
-    newFrameBtn.disabled = !enabled;
+let controlsEnabled = false;
+
+function syncButtonState() {
+    const on = controlsEnabled && isSignedIn();
+    newFrameBtn.disabled = !on;
     // Reset/download are only meaningful once a box exists; they are
     // re-evaluated by `updateBoxUI` whenever the box state changes.
-    resetBtn.disabled = !enabled || box == null;
-    downloadBtn.disabled = !enabled || box == null;
+    resetBtn.disabled = !on || box == null;
+    downloadBtn.disabled = !on || box == null;
+}
+
+function setControlsEnabled(enabled: boolean) {
+    controlsEnabled = enabled;
+    syncButtonState();
 }
 
 function showStatus(type: "info" | "success" | "error", message: string) {
@@ -163,8 +168,7 @@ function renderBoxOverlay() {
 function updateBoxUI() {
     renderBoxOverlay();
     downloadBtn.classList.toggle("ready", box != null);
-    resetBtn.disabled = box == null;
-    downloadBtn.disabled = box == null;
+    syncButtonState();
 }
 
 function showIssueModal(message: string) {
@@ -306,9 +310,7 @@ newFrameBtn.addEventListener("click", () => {
         showStatus("error", `Failed to load frame: ${msg}`);
         initialLoading.textContent = `❌ ${msg}. Click 🚫 No Subject Present to retry.`;
         initialLoading.style.display = "flex";
-        newFrameBtn.disabled = false;
-        resetBtn.disabled = false;
-        downloadBtn.disabled = false;
+        setControlsEnabled(true);
     });
 });
 
@@ -320,11 +322,6 @@ resetBtn.addEventListener("click", () => {
 downloadBtn.addEventListener("click", async () => {
     if (!box) {
         showStatus("error", "No box drawn yet.");
-        return;
-    }
-
-    if (!isSignedIn()) {
-        showStatus("error", "Please sign in with GitHub (top-right) to submit.");
         return;
     }
 
@@ -348,8 +345,8 @@ downloadBtn.addEventListener("click", async () => {
         console.error("Box JSON submission failed:", err);
         if (err instanceof AuthError) {
             renderAuthControl();
+            notifyAuthChange();
             showStatus("error", err.message);
-            setControlsEnabled(true);
             return;
         }
         const msg = err instanceof Error ? err.message : String(err);
@@ -380,6 +377,7 @@ window.addEventListener("resize", () => {
 });
 
 // ---- Boot ----
+onAuthChange(syncButtonState);
 initAuthControl();
 updateBoxUI();
 (async () => {
@@ -391,8 +389,6 @@ updateBoxUI();
         const msg = (err as Error).message;
         initialLoading.textContent = `❌ Failed to load video: ${msg}. Click 🚫 No Subject Present to retry.`;
         showStatus("error", msg);
-        newFrameBtn.disabled = false;
-        resetBtn.disabled = false;
-        downloadBtn.disabled = false;
+        setControlsEnabled(true);
     }
 })();

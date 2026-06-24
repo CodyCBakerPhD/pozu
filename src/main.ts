@@ -9,7 +9,7 @@ import { loadVideoModel, refreshTotalFrames, VIDEO_URL, type VideoModel } from "
 import { buildPayload, pickRandomFrame, type VideoMeta } from "./payload.js";
 import { submitLabelPayload } from "./label-api.js";
 import { LABEL_DEFINITIONS } from "./skeleton.js";
-import { initAuthControl, renderAuthControl, isSignedIn, AuthError } from "./auth.js";
+import { initAuthControl, renderAuthControl, isSignedIn, onAuthChange, notifyAuthChange, AuthError } from "./auth.js";
 
 // ---- Version badge ----
 (document.getElementById("versionBadge") as HTMLElement).textContent =
@@ -26,10 +26,7 @@ function showFatal(label: string, err: unknown): void {
         overlay.textContent = `❌ ${label}: ${msg}. See the browser console for details; click 🚫 No Subject Present to retry.`;
         overlay.style.display = "flex";
     }
-    for (const id of ["newFrameBtn", "resetBtn", "downloadBtn"]) {
-        const btn = document.getElementById(id) as HTMLButtonElement | null;
-        if (btn) btn.disabled = false;
-    }
+    setControlsEnabled(true);
 }
 window.addEventListener("error", (e) => showFatal("Uncaught error", e.error ?? e.message));
 window.addEventListener("unhandledrejection", (e) =>
@@ -196,10 +193,18 @@ labeler.onChange(() => {
 });
 updateSubmitReadyState();
 
+let controlsEnabled = false;
+
+function syncButtonState() {
+    const on = controlsEnabled && isSignedIn();
+    newFrameBtn.disabled = !on;
+    resetBtn.disabled = !on;
+    downloadBtn.disabled = !on;
+}
+
 function setControlsEnabled(enabled: boolean) {
-    newFrameBtn.disabled = !enabled;
-    resetBtn.disabled = !enabled;
-    downloadBtn.disabled = !enabled;
+    controlsEnabled = enabled;
+    syncButtonState();
 }
 
 function setViewMode(mode: ViewMode) {
@@ -353,11 +358,6 @@ async function doFocusSubmit() {
     const meta = getVideoMeta();
     if (!meta) return;
 
-    if (!isSignedIn()) {
-        showStatus("error", "Please sign in with GitHub (top-right) to submit.");
-        return;
-    }
-
     const payload = buildPayload({
         videoUrl: VIDEO_URL,
         frameIndex,
@@ -372,8 +372,8 @@ async function doFocusSubmit() {
         console.error("Focus submit failed:", err);
         if (err instanceof AuthError) {
             renderAuthControl();
+            notifyAuthChange();
             showStatus("error", err.message);
-            setControlsEnabled(true);
             return;
         }
         const msg = err instanceof Error ? err.message : String(err);
@@ -404,10 +404,7 @@ newFrameBtn.addEventListener("click", () => {
         showStatus("error", `Failed to load frame: ${msg}`);
         initialLoading.textContent = `❌ ${msg}. Click 🚫 No Subject Present to retry.`;
         initialLoading.style.display = "flex";
-        // Keep the controls enabled so the user can retry.
-        newFrameBtn.disabled = false;
-        resetBtn.disabled = false;
-        downloadBtn.disabled = false;
+        setControlsEnabled(true);
     });
 });
 
@@ -418,11 +415,6 @@ resetBtn.addEventListener("click", () => {
 downloadBtn.addEventListener("click", async () => {
     if (labeler.placed.size === 0) {
         showStatus("error", "No labels placed yet.");
-        return;
-    }
-
-    if (!isSignedIn()) {
-        showStatus("error", "Please sign in with GitHub (top-right) to submit.");
         return;
     }
 
@@ -446,8 +438,8 @@ downloadBtn.addEventListener("click", async () => {
         console.error("Label JSON submission failed:", err);
         if (err instanceof AuthError) {
             renderAuthControl();
+            notifyAuthChange();
             showStatus("error", err.message);
-            setControlsEnabled(true);
             return;
         }
         const msg = err instanceof Error ? err.message : String(err);
@@ -484,6 +476,7 @@ if (initialHash && initialHash in VIEW_MODE_NAMES) {
 }
 
 buildFocusPicker();
+onAuthChange(syncButtonState);
 initAuthControl();
 
 // ---- Boot ----
@@ -496,10 +489,6 @@ initAuthControl();
         const msg = (err as Error).message;
         initialLoading.textContent = `❌ Failed to load video: ${msg}. Click 🚫 No Subject Present to retry.`;
         showStatus("error", msg);
-        // Re-enable controls so the user can retry instead of being
-        // permanently stuck on the loading overlay.
-        newFrameBtn.disabled = false;
-        resetBtn.disabled = false;
-        downloadBtn.disabled = false;
+        setControlsEnabled(true);
     }
 })();

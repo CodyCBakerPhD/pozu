@@ -108,6 +108,17 @@ export function clearToken(): void {
     localStorage.removeItem(STORAGE_KEY);
 }
 
+const authChangeListeners: (() => void)[] = [];
+
+/** Register a callback to be invoked whenever the signed-in state changes. */
+export function onAuthChange(cb: () => void): void {
+    authChangeListeners.push(cb);
+}
+
+export function notifyAuthChange(): void {
+    for (const cb of authChangeListeners) cb();
+}
+
 /** Navigate to the backend to begin the GitHub OAuth flow. */
 export function signIn(): void {
     window.location.assign(LOGIN_URL);
@@ -170,6 +181,7 @@ export function initAuthControl(): void {
         if (isSignedIn()) {
             clearToken();
             renderAuthControl();
+            notifyAuthChange();
         } else if (typeof modal?.showModal === "function") {
             modal.showModal();
         } else {
@@ -185,4 +197,5 @@ export function initAuthControl(): void {
     });
 
     renderAuthControl();
+    notifyAuthChange();
 }
