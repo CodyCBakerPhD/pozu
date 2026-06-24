@@ -1,5 +1,8 @@
 # Upcoming
 
+- Fixed a bug where points placed on the full skeleton (label) view lingered on the frame after
+  switching to focus mode; the canvas now resets whenever the labeling context flips between the
+  label and focus workflows ([#69](https://github.com/pozu-project/pozu/issues/69)).
 - Widened the main labeling and box views to fill the window: the frame now scales to fill the
   available viewport box (both width and height, upscaling the 960×540 source past native
   resolution when there is room) instead of a fixed 720px cap, the content shell is wider, and the

@@ -258,9 +258,14 @@ function setViewMode(mode: ViewMode) {
     }
 
     if (mode === "label" || mode === "focus") {
+        const nextFocus = mode === "focus";
+        // The label (full skeleton) and focus workflows share one canvas, so
+        // any points placed in one would otherwise linger on the frame when
+        // switching to the other. Reset them when the labeling context flips.
+        if (nextFocus !== focusModeActive) labeler.clearAll();
         labelView.hidden = false;
         comingSoonView.hidden = true;
-        focusModeActive = mode === "focus";
+        focusModeActive = nextFocus;
         labelSidebarContent.hidden = mode === "focus";
         focusSidebarContent.hidden = mode !== "focus";
         resetBtn.hidden = mode === "focus";
