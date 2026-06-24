@@ -184,7 +184,12 @@ panToggleBtn.addEventListener("click", () =>
 
 // Re-fit the frame to the window so it keeps filling the row on resize.
 window.addEventListener("resize", () => {
-    if (canvasContainer.style.display === "none") return;
+    if (canvasContainer.style.display === "none") {
+        // Still loading: keep the reserved placeholder in step with the window
+        // so the eventual frame drops into the same box.
+        reserveFrameSpace();
+        return;
+    }
     fitCanvasToViewport();
     zoom.reset();
 });
@@ -309,17 +314,26 @@ const SIDEBAR_MIN_WIDTH = 150;
 // The EMBER frames are only 960×540, so filling a wide window means upscaling.
 // Cap it so the frame doesn't get unusably soft on very large monitors.
 const MAX_FRAME_SCALE = 2;
+// Dimensions used to reserve the frame area before the real video metadata is
+// known. The EMBER clips are 960×540 (16:9); holding the placeholder at the
+// size the first frame will occupy keeps the page from jumping when it paints.
+const DEFAULT_FRAME_WIDTH = 960;
+const DEFAULT_FRAME_HEIGHT = 540;
+// The canvas-container draws a 2px border the loading placeholder lacks; add it
+// back so the reserved box lines up exactly with the framed canvas.
+const CANVAS_BORDER = 2;
 
 const clampW = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 
-// Lay out the frame and the skeleton node selector on one row. The frame fills
+// Compute the on-screen frame and sidebar widths for an intrinsic w×h video,
+// given the current window. Pure — callers apply the result. The frame fills
 // the available viewport box (width and height, upscaling when there's room);
 // when the window is too narrow to hold both at full size, the frame and the
 // sidebar shrink together — the sidebar tracks the frame and never wraps below.
-function fitCanvasToViewport(): void {
-    if (!videoModel) return;
-    const { width: w, height: h } = videoModel.meta;
-    if (!w || !h) return;
+function computeFrameBox(
+    w: number,
+    h: number
+): { frameW: number; frameH: number; sidebarW: number } {
     const availH = Math.max(240, window.innerHeight - FRAME_RESERVED_HEIGHT);
     // Width shared between the frame and the sidebar.
     const usable = Math.max(
@@ -342,12 +356,36 @@ function fitCanvasToViewport(): void {
         frameW = clampW(usable - sidebarW, MIN_FRAME_WIDTH, frameCap);
     }
 
-    const scale = frameW / w;
-    displayScale = scale;
+    return { frameW, frameH: (frameW / w) * h, sidebarW };
+}
+
+// Size the live canvas (and sidebar) to fill the available row.
+function fitCanvasToViewport(): void {
+    if (!videoModel) return;
+    const { width: w, height: h } = videoModel.meta;
+    if (!w || !h) return;
+    const { frameW, frameH, sidebarW } = computeFrameBox(w, h);
+    displayScale = frameW / w;
     canvas.style.width = `${frameW}px`;
-    canvas.style.height = `${h * scale}px`;
+    canvas.style.height = `${frameH}px`;
     if (sidebar) sidebar.style.width = `${sidebarW}px`;
 }
+
+// Hold the frame area at its eventual size *before* the first frame loads, so
+// arriving at the page doesn't flash a small placeholder that then jumps to the
+// full fit-to-window frame. The real video metadata isn't known yet, so the
+// default 16:9 dimensions are used; smaller or odd-shaped videos are padded
+// into this allocation once they load.
+function reserveFrameSpace(): void {
+    if (canvasContainer.style.display !== "none") return;
+    const { frameW, frameH, sidebarW } = computeFrameBox(DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT);
+    initialLoading.style.width = `${frameW + CANVAS_BORDER * 2}px`;
+    initialLoading.style.height = `${frameH + CANVAS_BORDER * 2}px`;
+    if (sidebar) sidebar.style.width = `${sidebarW}px`;
+}
+
+// Reserve the space synchronously at boot, before the (slow) video load begins.
+reserveFrameSpace();
 
 async function showFrame(idx: number, bitmapPromise?: Promise<ImageBitmap | null>) {
     if (!videoModel) return;

@@ -236,23 +236,53 @@ const MIN_FRAME_WIDTH = 360;
 // The EMBER frames are only 960×540, so filling a wide window means upscaling.
 // Cap it so the frame doesn't get unusably soft on very large monitors.
 const MAX_FRAME_SCALE = 2;
+// Dimensions used to reserve the frame area before the real video metadata is
+// known. The EMBER clips are 960×540 (16:9); holding the placeholder at the
+// size the first frame will occupy keeps the page from jumping when it paints.
+const DEFAULT_FRAME_WIDTH = 960;
+const DEFAULT_FRAME_HEIGHT = 540;
+// The canvas-container draws a 2px border the loading placeholder lacks; add it
+// back so the reserved box lines up exactly with the framed canvas.
+const CANVAS_BORDER = 2;
 
-// Scale the frame to fill the available viewport box — both width and height,
-// upscaling past native resolution when there's room — so it fills the screen
-// instead of sitting at a fixed size.
-function fitCanvasToViewport(): void {
-    if (!videoModel) return;
-    const { width: w, height: h } = videoModel.meta;
-    if (!w || !h) return;
+// Width the frame fills for an intrinsic w×h video, given the current window —
+// both width and height constrain it, upscaling past native resolution when
+// there's room, so it fills the screen instead of sitting at a fixed size.
+function computeFrameWidth(w: number, h: number): number {
     const availW = Math.max(
         MIN_FRAME_WIDTH,
         Math.min(window.innerWidth, SHELL_MAX_WIDTH) - 40 - FRAME_RESERVED_WIDTH
     );
     const availH = Math.max(240, window.innerHeight - FRAME_RESERVED_HEIGHT);
     const scale = Math.min(availW / w, availH / h, MAX_FRAME_SCALE);
-    canvas.style.width = `${w * scale}px`;
-    canvas.style.height = `${h * scale}px`;
+    return w * scale;
 }
+
+// Size the live canvas to fill the available viewport box.
+function fitCanvasToViewport(): void {
+    if (!videoModel) return;
+    const { width: w, height: h } = videoModel.meta;
+    if (!w || !h) return;
+    const frameW = computeFrameWidth(w, h);
+    canvas.style.width = `${frameW}px`;
+    canvas.style.height = `${(frameW / w) * h}px`;
+}
+
+// Hold the frame area at its eventual size *before* the first frame loads, so
+// arriving at the page doesn't flash a small placeholder that then jumps to the
+// full fit-to-window frame. The real video metadata isn't known yet, so the
+// default 16:9 dimensions are used; smaller or odd-shaped videos are padded
+// into this allocation once they load.
+function reserveFrameSpace(): void {
+    if (canvasContainer.style.display !== "none") return;
+    const frameW = computeFrameWidth(DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT);
+    const frameH = (frameW / DEFAULT_FRAME_WIDTH) * DEFAULT_FRAME_HEIGHT;
+    initialLoading.style.width = `${frameW + CANVAS_BORDER * 2}px`;
+    initialLoading.style.height = `${frameH + CANVAS_BORDER * 2}px`;
+}
+
+// Reserve the space synchronously at boot, before the (slow) video load begins.
+reserveFrameSpace();
 
 // ---- Frame loading (mirrors main.ts) ----
 async function showFrame(idx: number) {
@@ -384,7 +414,12 @@ downloadBtn.addEventListener("click", async () => {
 // Re-fit the frame to the window on resize so it keeps filling the row, then
 // re-render the overlay so the rectangle stays glued to the frame.
 window.addEventListener("resize", () => {
-    if (canvasContainer.style.display === "none") return;
+    if (canvasContainer.style.display === "none") {
+        // Still loading: keep the reserved placeholder in step with the window
+        // so the eventual frame drops into the same box.
+        reserveFrameSpace();
+        return;
+    }
     fitCanvasToViewport();
     zoom.reset();
     if (box) renderBoxOverlay();
