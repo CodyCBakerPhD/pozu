@@ -24,5 +24,8 @@ export default defineConfig({
         command: "npm run dev",
         url: "http://localhost:5173",
         reuseExistingServer: !process.env.CI,
+        // Pin the displayed version so visual baselines stay stable across
+        // version bumps instead of changing on every PR.
+        env: { POZU_DISPLAY_VERSION: "x.y.z" },
     },
 });

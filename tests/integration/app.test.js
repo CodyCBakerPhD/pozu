@@ -15,6 +15,10 @@ test.describe("Pozu labeling page", () => {
         await page.goto("/", { waitUntil: "domcontentloaded" });
     });
 
+    test("pins the version badge to the static test version", async ({ page }) => {
+        await expect(page.locator("#versionBadge")).toHaveText("vx.y.z");
+    });
+
     test("renders top nav title", async ({ page }) => {
         await expect(page.locator(".top-nav-brand")).toContainText("Pozu");
         await expect(page.locator(".top-nav-brand .top-nav-logo")).toHaveAttribute(
