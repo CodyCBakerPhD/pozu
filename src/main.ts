@@ -293,23 +293,30 @@ const SHELL_MAX_WIDTH = 2288;
 // Horizontal space in the label row the frame can't use: shell padding, the
 // 300px sidebar, the zoom rail, and the gaps between them.
 const FRAME_RESERVED_WIDTH = 420;
+// Vertical space outside the frame: the top nav, shell padding, and the
+// controls below the frame. Keeps the frame from overflowing the window height.
+const FRAME_RESERVED_HEIGHT = 220;
 const MIN_FRAME_WIDTH = 360;
-// Let the frame render up to 30% past its native resolution so it fills wide
-// screens more fully; a mild upscale that's still crisp enough for labeling.
-const FRAME_OVERSCALE = 1.3;
+// The EMBER frames are only 960×540, so filling a wide window means upscaling.
+// Cap it so the frame doesn't get unusably soft on very large monitors.
+const MAX_FRAME_SCALE = 2;
 
-// Size the canvas to fill the available row width, allowing a modest upscale
-// past the frame's native resolution (see FRAME_OVERSCALE).
+// Scale the frame to fill the available viewport box — both width and height,
+// upscaling past native resolution when there's room — so it fills the screen
+// instead of sitting at a fixed size.
 function fitCanvasToViewport(): void {
     if (!videoModel) return;
     const { width: w, height: h } = videoModel.meta;
     if (!w || !h) return;
-    const shellInner = Math.min(window.innerWidth, SHELL_MAX_WIDTH) - 40;
-    const available = Math.max(MIN_FRAME_WIDTH, shellInner - FRAME_RESERVED_WIDTH);
-    const displayWidth = Math.min(available, w * FRAME_OVERSCALE);
-    displayScale = displayWidth / w;
-    canvas.style.width = `${displayWidth}px`;
-    canvas.style.height = `${h * displayScale}px`;
+    const availW = Math.max(
+        MIN_FRAME_WIDTH,
+        Math.min(window.innerWidth, SHELL_MAX_WIDTH) - 40 - FRAME_RESERVED_WIDTH
+    );
+    const availH = Math.max(240, window.innerHeight - FRAME_RESERVED_HEIGHT);
+    const scale = Math.min(availW / w, availH / h, MAX_FRAME_SCALE);
+    displayScale = scale;
+    canvas.style.width = `${w * scale}px`;
+    canvas.style.height = `${h * scale}px`;
 }
 
 async function showFrame(idx: number, bitmapPromise?: Promise<ImageBitmap | null>) {
