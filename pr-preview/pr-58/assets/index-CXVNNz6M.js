@@ -1,4 +1,4 @@
-import{L as u,a as ye,c as be,A as O,d as we,e as Z,i as ve,l as Ee,r as Ie,p as ee,b as te,f as ne,V as oe}from"./auth-CWETl40a.js";function Be(e){const t=new Map,n=[],s=()=>n.forEach(o=>o());let c=u[0].id,l=null,C=!1;function I(){for(const o of u){const a=document.createElement("div");a.className="label-item",a.dataset.labelId=o.id,a.innerHTML=`
+import{L as u,a as ye,c as be,A as O,d as we,e as Z,i as ve,l as Ee,r as Ie,p as ee,b as te,f as ne,V as oe}from"./auth-Dkbstr5m.js";function Be(e){const t=new Map,n=[],s=()=>n.forEach(o=>o());let c=u[0].id,l=null,C=!1;function I(){for(const o of u){const a=document.createElement("div");a.className="label-item",a.dataset.labelId=o.id,a.innerHTML=`
                 <div class="color-swatch" style="background:${o.color}"></div>
                 <span>${o.name}</span>
                 <span class="coords" id="coords-${o.id}">○</span>
