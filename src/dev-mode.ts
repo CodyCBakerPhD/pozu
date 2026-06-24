@@ -14,6 +14,8 @@
 
 export const DEV_MODE = new URLSearchParams(window.location.search).has("dev-mode");
 
+let _jsonContent: HTMLElement | null = null;
+
 /** Append `?dev-mode` (or `&dev-mode`) to a relative href, preserving any hash. */
 function addDevMode(href: string): string {
     const hashIdx = href.indexOf("#");
@@ -51,4 +53,23 @@ export function initDevMode(): void {
         const file = window.location.pathname.split("/").pop() ?? "";
         devModeLink.href = file + (query ? `?${query}` : "");
     }
+
+    // Inject the JSON payload preview panel at the bottom of <main>.
+    const panel = document.createElement("div");
+    panel.className = "dev-mode-json-panel";
+    panel.innerHTML =
+        `<h3 class="dev-mode-json-heading">Dev Mode — Payload Preview</h3>` +
+        `<pre class="dev-mode-json-content">Waiting for a frame to load…</pre>`;
+    document.querySelector("main")?.appendChild(panel);
+    _jsonContent = panel.querySelector(".dev-mode-json-content");
+}
+
+/**
+ * Update the JSON preview panel with the payload that would be sent to the
+ * backend. Pass `null` to show the waiting placeholder.
+ */
+export function updateDevModeJson(data: unknown): void {
+    if (!_jsonContent) return;
+    _jsonContent.textContent =
+        data != null ? JSON.stringify(data, null, 2) : "Waiting for a frame to load…";
 }
