@@ -21,7 +21,7 @@ body {
 }
 
 .top-nav-inner {
-    max-width: 1240px;
+    max-width: 1480px;
     margin: 0 auto;
     min-height: 80px;
     padding: 0 20px;
@@ -66,44 +66,19 @@ body {
     height: 16px;
 }
 
-.auth-user {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
 .auth-avatar {
-    width: 26px;
-    height: 26px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid rgba(148, 163, 184, 0.4);
 }
 
-.auth-name {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #f8fafc;
-    max-width: 140px;
+.auth-label {
+    max-width: 160px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.auth-signout {
-    font: inherit;
-    font-size: 0.78rem;
-    color: #94a3b8;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 2px 4px;
-    transition: color 0.15s;
-}
-
-.auth-signout:hover {
-    color: #f8fafc;
-    text-decoration: underline;
 }
 
 .top-nav-github {
@@ -247,7 +222,7 @@ body {
 
 .view-shell {
     width: 100%;
-    max-width: 1240px;
+    max-width: 1480px;
     margin: 0 auto;
     padding: 20px 20px 40px;
     min-height: calc(100vh - 80px);

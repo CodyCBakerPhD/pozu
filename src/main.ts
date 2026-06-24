@@ -1,6 +1,6 @@
 /**
  * Boot script for the labeling page. Wires together the DOM, the
- * labeler module, and the sleap-io.js-backed video loader.
+ * labeler module, and the HTML5 `<video>`-backed video loader.
  */
 import "./styles.css";
 import { createLabeler } from "./labeler.js";
@@ -77,7 +77,7 @@ const VIEW_MODE_NAMES: Record<ViewMode, string> = {
 };
 
 // Mark the overlay so we can verify the bundle actually loaded.
-setStage("Booting pozu… (loading sleap-io.js bundle)");
+setStage("Booting pozu… (loading video)");
 
 // ---- App state ----
 let videoModel: VideoModel | null = null;
@@ -490,7 +490,7 @@ initAuthControl();
     } catch (err) {
         console.error(err);
         const msg = (err as Error).message;
-        initialLoading.textContent = `❌ Failed to load video via sleap-io.js: ${msg}. Click 🚫 No Subject Present to retry.`;
+        initialLoading.textContent = `❌ Failed to load video: ${msg}. Click 🚫 No Subject Present to retry.`;
         showStatus("error", msg);
         // Re-enable controls so the user can retry instead of being
         // permanently stuck on the loading overlay.

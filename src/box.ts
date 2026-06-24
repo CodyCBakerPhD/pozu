@@ -68,7 +68,7 @@ const downloadBtn = document.getElementById("downloadBtn") as HTMLButtonElement;
 const errorModal = document.getElementById("errorModal") as HTMLDialogElement | null;
 const errorModalMessage = document.getElementById("errorModalMessage") as HTMLElement | null;
 
-setStage("Booting pozu box mode… (loading sleap-io.js bundle)");
+setStage("Booting pozu box mode… (loading video)");
 
 // ---- App state ----
 let videoModel: VideoModel | null = null;
@@ -385,7 +385,7 @@ updateBoxUI();
     } catch (err) {
         console.error(err);
         const msg = (err as Error).message;
-        initialLoading.textContent = `❌ Failed to load video via sleap-io.js: ${msg}. Click 🚫 No Subject Present to retry.`;
+        initialLoading.textContent = `❌ Failed to load video: ${msg}. Click 🚫 No Subject Present to retry.`;
         showStatus("error", msg);
         newFrameBtn.disabled = false;
         resetBtn.disabled = false;
