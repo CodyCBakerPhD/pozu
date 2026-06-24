@@ -490,7 +490,7 @@ h1 {
     appearance: slider-vertical;
     width: 20px;
     flex: 1 1 auto;
-    min-height: 160px;
+    min-height: 80px;
     accent-color: #0ea5e9;
     cursor: pointer;
 }
