@@ -586,6 +586,12 @@ canvas {
     font-size: 1rem;
 }
 
+#labelSidebarContent {
+    background: #0b1220;
+    border-radius: 6px;
+    padding: 12px;
+}
+
 .label-palette {
     display: flex;
     flex-direction: column;
