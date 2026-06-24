@@ -283,7 +283,10 @@ h1 {
 }
 
 .controls button:not([hidden]),
-.bottom-actions button:not([hidden]),
+.bottom-actions button:not([hidden]) {
+    display: block;
+}
+
 #resetBtn:not([hidden]) {
     display: block;
     margin: 0 auto;
