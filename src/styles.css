@@ -285,6 +285,8 @@ h1 {
 .controls button,
 .bottom-actions button,
 #resetBtn {
+    display: block;
+    margin: 0 auto;
     padding: 8px 18px;
     border: none;
     border-radius: 6px;
