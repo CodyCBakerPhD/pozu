@@ -473,6 +473,13 @@ h1 {
     gap: 12px;
 }
 
+.canvas-col {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 /* Vertical zoom control to the right of the frame. */
 .zoom-rail {
     display: flex;
