@@ -349,7 +349,7 @@ h1 {
     display: flex;
     gap: 12px;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     flex-wrap: wrap;
 }
 
