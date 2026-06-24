@@ -21,8 +21,7 @@ import { submitBoxPayload } from "./box-api.js";
 import { initAuthControl } from "./auth.js";
 
 // ---- Version badge ----
-(document.getElementById("versionBadge") as HTMLElement).textContent =
-    `v${__APP_VERSION__}`;
+(document.getElementById("versionBadge") as HTMLElement).textContent = `v${__APP_VERSION__}`;
 
 // ---- Diagnostics ----
 // Mirror main.ts so failures on the deployed preview surface in the
@@ -223,6 +222,28 @@ document.addEventListener("mouseup", commitDrag);
 // Releasing outside the viewport also ends the drag.
 window.addEventListener("blur", commitDrag);
 
+// ---- Frame sizing ----
+// Keep in sync with `.view-shell` / `.top-nav-inner` max-width in styles.css.
+const SHELL_MAX_WIDTH = 1760;
+// Horizontal space the frame can't use: shell padding, the zoom rail, and the
+// gaps around them. The box view has no sidebar, so less is reserved than in
+// the label view.
+const FRAME_RESERVED_WIDTH = 100;
+const MIN_FRAME_WIDTH = 360;
+
+// Size the canvas to fill the available row width without upscaling past the
+// frame's native resolution (which would blur it and hurt box precision).
+function fitCanvasToViewport(): void {
+    if (!videoModel) return;
+    const { width: w, height: h } = videoModel.meta;
+    if (!w || !h) return;
+    const shellInner = Math.min(window.innerWidth, SHELL_MAX_WIDTH) - 40;
+    const available = Math.max(MIN_FRAME_WIDTH, shellInner - FRAME_RESERVED_WIDTH);
+    const displayWidth = Math.min(available, w);
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${(h * displayWidth) / w}px`;
+}
+
 // ---- Frame loading (mirrors main.ts) ----
 async function showFrame(idx: number) {
     if (!videoModel) return;
@@ -251,10 +272,7 @@ async function showFrame(idx: number) {
         ctx.putImageData(bitmap, 0, 0);
     }
 
-    const maxDisplayWidth = 720;
-    const scale = Math.min(maxDisplayWidth / w, 1);
-    canvas.style.width = `${w * scale}px`;
-    canvas.style.height = `${h * scale}px`;
+    fitCanvasToViewport();
 
     frameIndex = idx;
     box = null;
@@ -353,9 +371,12 @@ downloadBtn.addEventListener("click", async () => {
     }
 });
 
-// Re-render the overlay when the viewport resizes so the rectangle
-// stays glued to the frame.
+// Re-fit the frame to the window on resize so it keeps filling the row, then
+// re-render the overlay so the rectangle stays glued to the frame.
 window.addEventListener("resize", () => {
+    if (canvasContainer.style.display === "none") return;
+    fitCanvasToViewport();
+    zoom.reset();
     if (box) renderBoxOverlay();
 });
 
