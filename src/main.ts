@@ -519,10 +519,6 @@ if (initialHash && initialHash in VIEW_MODE_NAMES) {
 buildFocusPicker();
 onAuthChange(() => {
     if (isSignedIn() && demoMode) exitDemoMode();
-    else if (!isSignedIn() && !demoMode) {
-        enterDemoMode();
-        initDemoFrames();
-    }
 });
 initAuthControl();
 
