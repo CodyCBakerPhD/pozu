@@ -436,9 +436,9 @@ async function showFrame(idx: number, bitmapPromise?: Promise<ImageBitmap | null
             {
                 video_url: VIDEO_URL,
                 frame_index: frameIndex,
-                timestamp: "<time of submission>",
-                reason: "<selected at submit>",
-                details: "<optional>",
+                timestamp: null,
+                reason: null,
+                details: null,
             }
         );
     }
