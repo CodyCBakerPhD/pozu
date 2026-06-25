@@ -954,6 +954,135 @@ canvas {
     color: #f8fafc;
 }
 
+.report-modal {
+    margin: auto;
+    max-width: 420px;
+    width: calc(100% - 32px);
+    border: 1px solid #334155;
+    border-radius: 10px;
+    background: #0b1220;
+    color: #e2e8f0;
+    padding: 20px;
+}
+
+.report-modal::backdrop {
+    background: rgba(2, 6, 23, 0.75);
+}
+
+.report-modal h2 {
+    margin-bottom: 6px;
+}
+
+.report-modal-hint {
+    margin-bottom: 16px;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.report-reasons {
+    border: none;
+    padding: 0;
+    margin: 0 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.report-reason {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.report-reason input[type="radio"] {
+    accent-color: #0ea5e9;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.report-details {
+    width: 100%;
+    box-sizing: border-box;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    color: #e2e8f0;
+    font: inherit;
+    font-size: 0.9rem;
+    padding: 8px 10px;
+    resize: vertical;
+    margin-bottom: 16px;
+}
+
+.report-details:focus {
+    outline: 2px solid #0ea5e9;
+    outline-offset: -1px;
+}
+
+.report-details[hidden] {
+    display: none;
+}
+
+.report-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.report-modal-cancel {
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #94a3b8;
+    font: inherit;
+    font-weight: 600;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.report-modal-cancel:hover {
+    color: #f8fafc;
+}
+
+.report-modal-submit {
+    border: none;
+    border-radius: 6px;
+    background: #0ea5e9;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.report-modal-submit:hover {
+    background: #0284c7;
+}
+
+.report-modal-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .loading-fullscreen {
     display: flex;
     align-items: center;
