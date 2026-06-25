@@ -1,4 +1,4 @@
-import{a as e,c as t,g as n,i as r}from"./dev-mode-Bh4gkLj1.js";function i(e){let t=new Map,r=[],i=()=>r.forEach(e=>e()),a=n[0].id,o=null,s=!1;function c(){if(!e.labelPalette){l(n[0].id);return}for(let t of n){let n=document.createElement(`div`);n.className=`label-item`,n.dataset.labelId=t.id,n.innerHTML=`
+import{a as e,c as t,g as n,i as r}from"./dev-mode-JOc2skaz.js";function i(e){let t=new Map,r=[],i=()=>r.forEach(e=>e()),a=n[0].id,o=null,s=!1;function c(){if(!e.labelPalette){l(n[0].id);return}for(let t of n){let n=document.createElement(`div`);n.className=`label-item`,n.dataset.labelId=t.id,n.innerHTML=`
                 <div class="color-swatch" style="background:${t.color}"></div>
                 <span>${t.name}</span>
                 <span class="coords" id="coords-${t.id}">○</span>
