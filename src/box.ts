@@ -13,7 +13,8 @@ import { createZoomController } from "./zoom.js";
 import { pickRandomFrame, type VideoMeta } from "./payload.js";
 import { buildBoxPayload, normaliseBox, clampBox, type Box } from "./box-payload.js";
 import { initAuthControl } from "./auth.js";
-import { DEV_MODE, initDevMode, updateDevModeJson } from "./dev-mode.js";
+import { DEV_MODE, initDevMode, updateDevModeJson, updateDevModeFlagJson } from "./dev-mode.js";
+import { submitFrameReport } from "./report-api.js";
 
 // ---- Version badge ----
 (document.getElementById("versionBadge") as HTMLElement).textContent = `v${__APP_VERSION__}`;
@@ -66,6 +67,11 @@ if (!DEV_MODE) {
     const boxZoomToggleBtn = document.getElementById("boxZoomToggleBtn") as HTMLButtonElement;
     const initialLoading = document.getElementById("initialLoading") as HTMLElement;
     const resetBtn = document.getElementById("resetBtn") as HTMLButtonElement;
+    const reportFrameBtn = document.getElementById("reportFrameBtn") as HTMLButtonElement;
+    const reportFrameModal = document.getElementById("reportFrameModal") as HTMLDialogElement;
+    const reportFrameDetails = document.getElementById("reportFrameDetails") as HTMLTextAreaElement;
+    const reportFrameCancelBtn = document.getElementById("reportFrameCancelBtn") as HTMLButtonElement;
+    const reportFrameSubmitBtn = document.getElementById("reportFrameSubmitBtn") as HTMLButtonElement;
 
     setStage("Booting pozu box dev-mode… (loading video)");
 
@@ -117,6 +123,7 @@ if (!DEV_MODE) {
     // newFrameBtn and downloadBtn are permanently disabled in dev-mode.
     function setControlsEnabled(enabled: boolean) {
         resetBtn.disabled = !enabled || box == null;
+        reportFrameBtn.disabled = !enabled;
     }
 
     function renderBoxOverlay() {
@@ -138,6 +145,18 @@ if (!DEV_MODE) {
         updateDevModeJson(
             videoModel
                 ? buildBoxPayload({ videoUrl: VIDEO_URL, frameIndex, videoMeta: videoModel.meta, box })
+                : null
+        );
+        updateDevModeFlagJson(
+            videoModel ? { video_url: VIDEO_URL, frame_index: frameIndex } : null,
+            videoModel
+                ? {
+                      video_url: VIDEO_URL,
+                      frame_index: frameIndex,
+                      timestamp: null,
+                      reason: null,
+                      details: null,
+                  }
                 : null
         );
     }
@@ -286,6 +305,55 @@ if (!DEV_MODE) {
     }
 
     resetBtn.addEventListener("click", () => { box = null; updateBoxUI(); });
+
+    reportFrameBtn.addEventListener("click", () => {
+        const radios = reportFrameModal.querySelectorAll<HTMLInputElement>("input[name='reportReason']");
+        radios.forEach((r) => { r.checked = false; });
+        reportFrameDetails.hidden = true;
+        reportFrameDetails.value = "";
+        reportFrameSubmitBtn.disabled = true;
+        reportFrameModal.showModal();
+    });
+
+    reportFrameModal.querySelectorAll<HTMLInputElement>("input[name='reportReason']").forEach((radio) => {
+        radio.addEventListener("change", () => {
+            const isOther = radio.value === "other" && radio.checked;
+            reportFrameDetails.hidden = !isOther;
+            reportFrameSubmitBtn.disabled = false;
+        });
+    });
+
+    reportFrameCancelBtn.addEventListener("click", () => {
+        reportFrameModal.close();
+    });
+
+    reportFrameSubmitBtn.addEventListener("click", async () => {
+        const selectedRadio = reportFrameModal.querySelector<HTMLInputElement>("input[name='reportReason']:checked");
+        if (!selectedRadio) return;
+        const reason = selectedRadio.value;
+        const details = reportFrameDetails.value.trim();
+        if (reason === "other" && !details) {
+            reportFrameDetails.focus();
+            return;
+        }
+
+        reportFrameSubmitBtn.disabled = true;
+        try {
+            await submitFrameReport({
+                video_url: VIDEO_URL,
+                frame_index: frameIndex,
+                timestamp: new Date().toISOString(),
+                reason,
+                details: details || undefined,
+            });
+            reportFrameModal.close();
+        } catch (err) {
+            console.error("[pozu:box] report submission failed:", err);
+            reportFrameModal.close();
+        } finally {
+            reportFrameSubmitBtn.disabled = false;
+        }
+    });
 
     window.addEventListener("resize", () => {
         if (canvasContainer.style.display === "none") { reserveFrameSpace(); return; }

@@ -8,9 +8,11 @@ import { createZoomController } from "./zoom.js";
 import { loadVideoModel, refreshTotalFrames, VIDEO_URL, type VideoModel } from "./video.js";
 import { buildPayload, pickRandomFrame, type VideoMeta } from "./payload.js";
 import { submitLabelPayload } from "./label-api.js";
+import { submitFrameReport } from "./report-api.js";
+import { submitNoSubjectPayload } from "./no-subject-api.js";
 import { LABEL_DEFINITIONS } from "./skeleton.js";
 import { initAuthControl, isSignedIn, onAuthChange } from "./auth.js";
-import { DEV_MODE, initDevMode, updateDevModeJson } from "./dev-mode.js";
+import { DEV_MODE, initDevMode, updateDevModeJson, updateDevModeFlagJson } from "./dev-mode.js";
 
 // ---- Version badge ----
 (document.getElementById("versionBadge") as HTMLElement).textContent = `v${__APP_VERSION__}`;
@@ -56,6 +58,11 @@ const boxZoomToggleBtn = document.getElementById("boxZoomToggleBtn") as HTMLButt
 const initialLoading = document.getElementById("initialLoading") as HTMLElement;
 const labelPalette = document.getElementById("labelPalette") as HTMLElement;
 const statusMsg = document.getElementById("statusMsg") as HTMLElement;
+const reportFrameBtn = document.getElementById("reportFrameBtn") as HTMLButtonElement;
+const reportFrameModal = document.getElementById("reportFrameModal") as HTMLDialogElement;
+const reportFrameDetails = document.getElementById("reportFrameDetails") as HTMLTextAreaElement;
+const reportFrameCancelBtn = document.getElementById("reportFrameCancelBtn") as HTMLButtonElement;
+const reportFrameSubmitBtn = document.getElementById("reportFrameSubmitBtn") as HTMLButtonElement;
 const newFrameBtn = document.getElementById("newFrameBtn") as HTMLButtonElement;
 const resetBtn = document.getElementById("resetBtn") as HTMLButtonElement;
 const downloadBtn = document.getElementById("downloadBtn") as HTMLButtonElement;
@@ -223,6 +230,7 @@ function updateDemoNav() {
 
 function enterDemoMode() {
     demoMode = true;
+    reportFrameBtn.hidden = true;
     newFrameBtn.hidden = true;
     downloadBtn.hidden = true;
     demoControls.hidden = false;
@@ -233,6 +241,7 @@ function enterDemoMode() {
 
 function exitDemoMode() {
     demoMode = false;
+    reportFrameBtn.hidden = false;
     newFrameBtn.hidden = false;
     downloadBtn.hidden = false;
     demoControls.hidden = true;
@@ -255,8 +264,9 @@ async function initDemoFrames() {
 }
 
 function setControlsEnabled(enabled: boolean) {
-    // In dev-mode newFrameBtn and downloadBtn are permanently disabled.
+    // In dev-mode newFrameBtn, downloadBtn, and reportFrameBtn are permanently disabled.
     if (!DEV_MODE) newFrameBtn.disabled = !enabled;
+    if (!DEV_MODE) reportFrameBtn.disabled = !enabled;
     resetBtn.disabled = !enabled;
     if (!DEV_MODE) downloadBtn.disabled = !enabled;
 }
@@ -420,6 +430,20 @@ async function showFrame(idx: number, bitmapPromise?: Promise<ImageBitmap | null
     // matters once zoomed in.
     boxZoomToggleBtn.disabled = false;
 
+    if (DEV_MODE) {
+        const meta = getVideoMeta();
+        updateDevModeFlagJson(
+            { video_url: VIDEO_URL, frame_index: frameIndex },
+            {
+                video_url: VIDEO_URL,
+                frame_index: frameIndex,
+                timestamp: null,
+                reason: null,
+                details: null,
+            }
+        );
+    }
+
     setControlsEnabled(true);
 
     // Current frame is painted; the `<video>` is now free to seek ahead.
@@ -488,7 +512,62 @@ demoNextBtn.addEventListener("click", () => {
     showFrame(demoFrameIndices[demoPosition]).then(updateDemoNav);
 });
 
+reportFrameBtn.addEventListener("click", () => {
+    const radios = reportFrameModal.querySelectorAll<HTMLInputElement>("input[name='reportReason']");
+    radios.forEach((r) => { r.checked = false; });
+    reportFrameDetails.hidden = true;
+    reportFrameDetails.value = "";
+    reportFrameSubmitBtn.disabled = true;
+    reportFrameModal.showModal();
+});
+
+reportFrameModal.querySelectorAll<HTMLInputElement>("input[name='reportReason']").forEach((radio) => {
+    radio.addEventListener("change", () => {
+        const isOther = radio.value === "other" && radio.checked;
+        reportFrameDetails.hidden = !isOther;
+        reportFrameSubmitBtn.disabled = false;
+    });
+});
+
+reportFrameCancelBtn.addEventListener("click", () => {
+    reportFrameModal.close();
+});
+
+reportFrameSubmitBtn.addEventListener("click", async () => {
+    const selectedRadio = reportFrameModal.querySelector<HTMLInputElement>("input[name='reportReason']:checked");
+    if (!selectedRadio) return;
+    const reason = selectedRadio.value;
+    const details = reportFrameDetails.value.trim();
+    if (reason === "other" && !details) {
+        reportFrameDetails.focus();
+        return;
+    }
+
+    reportFrameSubmitBtn.disabled = true;
+    try {
+        await submitFrameReport({
+            video_url: VIDEO_URL,
+            frame_index: frameIndex,
+            timestamp: new Date().toISOString(),
+            reason,
+            details: details || undefined,
+        });
+        reportFrameModal.close();
+        showStatus("success", "Frame reported — thank you.");
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        showStatus("error", `Failed to submit report: ${msg}`);
+        reportFrameModal.close();
+    } finally {
+        reportFrameSubmitBtn.disabled = false;
+    }
+});
+
 newFrameBtn.addEventListener("click", () => {
+    submitNoSubjectPayload({ video_url: VIDEO_URL, frame_index: frameIndex }).catch((err: Error) => {
+        console.error("[pozu] no-subject submission failed:", err);
+        showStatus("error", `Failed to record no-subject: ${err.message}`);
+    });
     loadRandomFrame().catch((err: Error) => {
         console.error(err);
         const msg = err?.message ?? String(err);
@@ -568,9 +647,11 @@ initAuthControl();
 // ---- Boot ----
 (async () => {
     if (isSignedIn()) {
+        reportFrameBtn.hidden = false;
         newFrameBtn.hidden = false;
         downloadBtn.hidden = false;
         if (DEV_MODE) {
+            reportFrameBtn.disabled = true;
             newFrameBtn.disabled = true;
             downloadBtn.disabled = true;
         }

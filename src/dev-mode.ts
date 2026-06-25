@@ -15,6 +15,8 @@
 export const DEV_MODE = new URLSearchParams(window.location.search).has("dev-mode");
 
 let _jsonContent: HTMLElement | null = null;
+let _flagNoSubjectContent: HTMLElement | null = null;
+let _flagReportContent: HTMLElement | null = null;
 
 /** Append `?dev-mode` (or `&dev-mode`) to a relative href, preserving any hash. */
 function addDevMode(href: string): string {
@@ -70,6 +72,24 @@ export function initDevMode(): void {
         `<pre class="dev-mode-json-content">Waiting for a frame to load…</pre>`;
     document.querySelector("main")?.appendChild(panel);
     _jsonContent = panel.querySelector(".dev-mode-json-content");
+
+    // Inject the flag payload preview panel (report frame + no subject present).
+    const flagPanel = document.createElement("div");
+    flagPanel.className = "dev-mode-flag-panel";
+    flagPanel.innerHTML =
+        `<h3 class="dev-mode-flag-heading">Dev Mode — Flag Payload Preview</h3>` +
+        `<div class="dev-mode-flag-section">` +
+            `<div class="dev-mode-flag-label">No Subject Present</div>` +
+            `<pre class="dev-mode-json-content dev-mode-flag-content">Waiting for a frame to load…</pre>` +
+        `</div>` +
+        `<div class="dev-mode-flag-section">` +
+            `<div class="dev-mode-flag-label">Report Frame</div>` +
+            `<pre class="dev-mode-json-content dev-mode-flag-content">Waiting for a frame to load…</pre>` +
+        `</div>`;
+    document.querySelector("main")?.appendChild(flagPanel);
+    const flagContents = flagPanel.querySelectorAll<HTMLElement>(".dev-mode-flag-content");
+    _flagNoSubjectContent = flagContents[0] ?? null;
+    _flagReportContent = flagContents[1] ?? null;
 }
 
 /**
@@ -80,4 +100,21 @@ export function updateDevModeJson(data: unknown): void {
     if (!_jsonContent) return;
     _jsonContent.textContent =
         data != null ? JSON.stringify(data, null, 2) : "Waiting for a frame to load…";
+}
+
+/**
+ * Update the flag payload preview panel with the no-subject and report-frame
+ * payloads that would be sent to the backend. Pass `null` to show the waiting
+ * placeholder for both.
+ */
+export function updateDevModeFlagJson(noSubject: unknown, report: unknown): void {
+    const placeholder = "Waiting for a frame to load…";
+    if (_flagNoSubjectContent) {
+        _flagNoSubjectContent.textContent =
+            noSubject != null ? JSON.stringify(noSubject, null, 2) : placeholder;
+    }
+    if (_flagReportContent) {
+        _flagReportContent.textContent =
+            report != null ? JSON.stringify(report, null, 2) : placeholder;
+    }
 }
