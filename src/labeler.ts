@@ -29,7 +29,7 @@ export interface Labeler {
 export interface LabelerOptions {
     canvas: HTMLCanvasElement;
     canvasContainer: HTMLElement;
-    labelPalette: HTMLElement;
+    labelPalette: HTMLElement | null;
     getDisplayScale: () => number;
     getVideoMeta: () => VideoMeta | null;
 }
@@ -45,6 +45,10 @@ export function createLabeler(opts: LabelerOptions): Labeler {
 
     // ---- Palette ----
     function initPalette() {
+        if (!opts.labelPalette) {
+            selectLabel(LABEL_DEFINITIONS[0].id);
+            return;
+        }
         for (const def of LABEL_DEFINITIONS) {
             const item = document.createElement("div");
             item.className = "label-item";

@@ -26,7 +26,6 @@ function addDevMode(href: string): string {
 
 export function initDevMode(): void {
     const devModeLink = document.querySelector<HTMLAnchorElement>(".top-nav-devmode-link");
-    const file = window.location.pathname.split("/").pop() ?? "";
     const params = new URLSearchParams(window.location.search);
 
     // Always point the Dev Mode button at the current page, toggling the param.
@@ -34,12 +33,12 @@ export function initDevMode(): void {
         if (DEV_MODE) {
             params.delete("dev-mode");
             const query = params.toString();
-            devModeLink.href = file + (query ? `?${query}` : "");
+            devModeLink.href = query ? `?${query}` : "./";
         } else {
             params.set("dev-mode", "");
-            // Produce "page.html?dev-mode" without a trailing "=".
+            // Produce "?dev-mode" without a trailing "=".
             const query = params.toString().replace("dev-mode=", "dev-mode");
-            devModeLink.href = file + "?" + query;
+            devModeLink.href = "?" + query;
         }
     }
 
@@ -54,8 +53,8 @@ export function initDevMode(): void {
     for (const sel of selectors) {
         for (const a of document.querySelectorAll<HTMLAnchorElement>(sel)) {
             const href = a.getAttribute("href")!;
-            // Skip external links, anchors-only, and links that already carry the param.
-            if (!href.startsWith("./") || href.includes("dev-mode")) continue;
+            // Skip external links (http/https), anchors-only, and links that already carry the param.
+            if (href.startsWith("http") || href.startsWith("#") || href.includes("dev-mode")) continue;
             a.setAttribute("href", addDevMode(href));
         }
     }

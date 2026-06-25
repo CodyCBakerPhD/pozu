@@ -5,7 +5,7 @@ export default {
 export const Default = () => `
   <header class="top-nav">
     <div class="top-nav-inner">
-      <a class="top-nav-brand" href="./index.html" aria-label="Pozu home">
+      <a class="top-nav-brand" href="../label/" aria-label="Pozu home">
         <img class="top-nav-logo" src="./assets/pozu-logo.svg" alt="" aria-hidden="true" />
         <span>Pozu</span>
       </a>
@@ -13,9 +13,9 @@ export const Default = () => `
         <div class="nav-section nav-section--label">
           <span class="nav-section-title">Label</span>
           <div class="nav-section-tabs">
-            <button class="top-nav-link" type="button">Focus</button>
-            <button class="top-nav-link active" type="button">Full Skeleton</button>
-            <a class="top-nav-link" href="./box.html">Box</a>
+            <a class="top-nav-link" href="../focus/">Focus</a>
+            <a class="top-nav-link active" href="../label/" aria-current="page">Full Skeleton</a>
+            <a class="top-nav-link" href="../box/">Box</a>
           </div>
         </div>
         <div class="nav-section nav-section--train">
