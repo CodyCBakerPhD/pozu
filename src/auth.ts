@@ -191,7 +191,7 @@ export function initAuthControl(): void {
     document.getElementById("authBtn")?.addEventListener("click", () => {
         if (isSignedIn()) {
             clearToken();
-            window.location.assign("./index.html");
+            window.location.assign("../label/");
         } else if (typeof modal?.showModal === "function") {
             modal.showModal();
         } else {

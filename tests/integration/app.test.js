@@ -6,13 +6,13 @@ const EMBER_VIDEO_URL = "https://ember-open-data.s3.amazonaws.com/blobs/";
 // without hitting the real backend OAuth flow.
 const FAKE_TOKEN = "header.eyJleHAiOjk5OTk5OTk5OTl9.sig";
 
-test.describe("Pozu labeling page", () => {
+test.describe("Pozu label page", () => {
     test.beforeEach(async ({ page }) => {
         await page.addInitScript((token) => {
             localStorage.setItem("pozu.auth.token", token);
         }, FAKE_TOKEN);
         await page.route(`${EMBER_VIDEO_URL}**`, (route) => route.abort());
-        await page.goto("/", { waitUntil: "domcontentloaded" });
+        await page.goto("/label/", { waitUntil: "domcontentloaded" });
     });
 
     test("pins the version badge to the static test version", async ({ page }) => {
@@ -69,11 +69,12 @@ test.describe("Pozu labeling page", () => {
     test("shows top nav modes and coming soon placeholder for non-label modes", async ({
         page,
     }) => {
-        for (const mode of ["binary", "track", "label"]) {
+        for (const mode of ["binary", "track"]) {
             await expect(page.locator(`[data-view-mode="${mode}"]`)).toBeVisible();
         }
-        // `box` is its own page, so it's a link rather than a data-view-mode button.
-        await expect(page.locator('a.top-nav-link[href*="box.html"]')).toBeVisible();
+        // `focus` and `box` are separate pages, so they are links rather than data-view-mode buttons.
+        await expect(page.locator('a.top-nav-link[href*="/focus/"]')).toBeVisible();
+        await expect(page.locator('a.top-nav-link[href*="/box/"]')).toBeVisible();
 
         // Binary and track are permanently disabled (curate features not yet available).
         await expect(page.locator('[data-view-mode="binary"]')).toBeDisabled();
@@ -84,12 +85,20 @@ test.describe("Pozu labeling page", () => {
         await expect(page.locator("#comingSoonView")).toBeHidden();
     });
 
+    test("Focus nav link points to the standalone focus page", async ({ page }) => {
+        const focusLink = page.locator('a.top-nav-link[href*="/focus/"]');
+        await expect(focusLink).toBeVisible();
+        await expect(focusLink).toHaveText("Focus");
+        await focusLink.click();
+        await expect(page).toHaveURL(/\/focus\//);
+    });
+
     test("Box nav link points to the standalone box page", async ({ page }) => {
-        const boxLink = page.locator('a.top-nav-link[href*="box.html"]');
+        const boxLink = page.locator('a.top-nav-link[href*="/box/"]');
         await expect(boxLink).toBeVisible();
         await expect(boxLink).toHaveText("Box");
         await boxLink.click();
-        await expect(page).toHaveURL(/box\.html$/);
+        await expect(page).toHaveURL(/\/box\//);
     });
 
     test("renders one palette entry per label definition", async ({ page }) => {
@@ -148,7 +157,7 @@ test.describe("Pozu box-selection page", () => {
             localStorage.setItem("pozu.auth.token", token);
         }, FAKE_TOKEN);
         await page.route(`${EMBER_VIDEO_URL}**`, (route) => route.abort());
-        await page.goto("/box.html", { waitUntil: "domcontentloaded" });
+        await page.goto("/box/", { waitUntil: "domcontentloaded" });
     });
 
     test("renders the box page chrome with Box active in the nav", async ({ page }) => {
@@ -157,22 +166,22 @@ test.describe("Pozu box-selection page", () => {
             "src",
             /\/assets\/pozu-logo\.svg$/
         );
-        const boxLink = page.locator('a.top-nav-link[href*="box.html"]');
+        const boxLink = page.locator('a.top-nav-link[href*="/box/"][aria-current="page"]');
         await expect(boxLink).toHaveClass(/active/);
     });
 
     test("nav links keep button-like styling on box page", async ({ page }) => {
         const textDecoration = await page
-            .locator('a.top-nav-link[href*="#binary"]')
+            .locator('a.top-nav-link[href*="/label/#binary"]')
             .evaluate((el) => {
                 return window.getComputedStyle(el).textDecorationLine;
             });
         expect(textDecoration).toBe("none");
     });
 
-    test("nav label typography matches between index and box pages", async ({ page }) => {
-        await page.goto("/");
-        const indexNavStyle = await page.locator('[data-view-mode="binary"]').evaluate((el) => {
+    test("nav label typography matches between label and box pages", async ({ page }) => {
+        await page.goto("/label/");
+        const labelNavStyle = await page.locator('[data-view-mode="binary"]').evaluate((el) => {
             const computed = window.getComputedStyle(el);
             return {
                 fontSize: computed.fontSize,
@@ -181,8 +190,8 @@ test.describe("Pozu box-selection page", () => {
             };
         });
 
-        await page.goto("/box.html");
-        const boxNavStyle = await page.locator('a.top-nav-link[href*="#binary"]').evaluate((el) => {
+        await page.goto("/box/");
+        const boxNavStyle = await page.locator('a.top-nav-link[href*="/label/#binary"]').evaluate((el) => {
             const computed = window.getComputedStyle(el);
             return {
                 fontSize: computed.fontSize,
@@ -191,7 +200,7 @@ test.describe("Pozu box-selection page", () => {
             };
         });
 
-        expect(boxNavStyle).toEqual(indexNavStyle);
+        expect(boxNavStyle).toEqual(labelNavStyle);
     });
 
     test("shows box controls with updated bottom actions", async ({ page }) => {
@@ -226,12 +235,50 @@ test.describe("Pozu box-selection page", () => {
         expect(borderColor).toBe("rgb(34, 197, 94)");
     });
 
-    test("Full Skeleton link in the nav points back to the labeling page", async ({ page }) => {
-        const labelLink = page.locator('a.top-nav-link[href$="index.html"]', {
+    test("Full Skeleton link in the nav points back to the label page", async ({ page }) => {
+        const labelLink = page.locator('a.top-nav-link[href*="/label/"]', {
             hasText: "Full Skeleton",
         });
         await expect(labelLink).toBeVisible();
         await labelLink.click();
-        await expect(page).toHaveURL(/\/(index\.html)?$/);
+        await expect(page).toHaveURL(/\/label\//);
+    });
+});
+
+test.describe("Pozu focus page", () => {
+    test.beforeEach(async ({ page }) => {
+        await page.addInitScript((token) => {
+            localStorage.setItem("pozu.auth.token", token);
+        }, FAKE_TOKEN);
+        await page.route(`${EMBER_VIDEO_URL}**`, (route) => route.abort());
+        await page.goto("/focus/", { waitUntil: "domcontentloaded" });
+    });
+
+    test("renders the focus page chrome with Focus active in the nav", async ({ page }) => {
+        await expect(page.locator(".top-nav-brand")).toContainText("Pozu");
+        const focusLink = page.locator('a.top-nav-link[href*="/focus/"][aria-current="page"]');
+        await expect(focusLink).toHaveClass(/active/);
+    });
+
+    test("shows the focus sidebar with keypoint selector", async ({ page }) => {
+        await expect(page.locator("#focusSidebarContent")).toBeVisible();
+        await expect(page.locator("#focusKeypointSelect")).toBeVisible();
+        await expect(page.locator("#focusCount")).toBeVisible();
+    });
+
+    test("Full Skeleton link in the nav points to the label page", async ({ page }) => {
+        const labelLink = page.locator('a.top-nav-link[href*="/label/"]', {
+            hasText: "Full Skeleton",
+        });
+        await expect(labelLink).toBeVisible();
+        await labelLink.click();
+        await expect(page).toHaveURL(/\/label\//);
+    });
+});
+
+test.describe("Pozu root redirect", () => {
+    test("root redirects to the label page", async ({ page }) => {
+        await page.goto("/", { waitUntil: "domcontentloaded" });
+        await expect(page).toHaveURL(/\/label\//);
     });
 });

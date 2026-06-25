@@ -1,6 +1,7 @@
 /**
- * Boot script for the labeling page. Wires together the DOM, the
- * labeler module, and the HTML5 `<video>`-backed video loader.
+ * Boot script for the focus-mode labeling page. Wires together the DOM,
+ * the labeler module, and the HTML5 `<video>`-backed video loader.
+ * Focus mode labels one keypoint at a time and auto-submits on placement.
  */
 import "./styles.css";
 import { createLabeler } from "./labeler.js";
@@ -18,8 +19,6 @@ import { DEV_MODE, initDevMode, updateDevModeJson } from "./dev-mode.js";
 initDevMode();
 
 // ---- Diagnostics ----
-// Surface module-evaluation / async errors directly into the loading
-// overlay so failures on the deployed preview don't silently hang.
 function showFatal(label: string, err: unknown): void {
     const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     console.error(`[pozu] ${label}:`, err);
@@ -41,7 +40,7 @@ function setStage(message: string): void {
     if (overlay) overlay.textContent = message;
 }
 
-console.info("[pozu] main.ts module evaluating");
+console.info("[pozu] focus.ts module evaluating");
 
 // ---- DOM ----
 const canvas = document.getElementById("frameCanvas") as HTMLCanvasElement;
@@ -54,28 +53,15 @@ const zoomLevel = document.getElementById("zoomLevel") as HTMLElement;
 const panToggleBtn = document.getElementById("panToggleBtn") as HTMLButtonElement;
 const boxZoomToggleBtn = document.getElementById("boxZoomToggleBtn") as HTMLButtonElement;
 const initialLoading = document.getElementById("initialLoading") as HTMLElement;
-const labelPalette = document.getElementById("labelPalette") as HTMLElement;
 const statusMsg = document.getElementById("statusMsg") as HTMLElement;
 const newFrameBtn = document.getElementById("newFrameBtn") as HTMLButtonElement;
-const resetBtn = document.getElementById("resetBtn") as HTMLButtonElement;
-const downloadBtn = document.getElementById("downloadBtn") as HTMLButtonElement;
 const demoControls = document.getElementById("demoControls") as HTMLElement;
 const demoPrevBtn = document.getElementById("demoPrevBtn") as HTMLButtonElement;
 const demoNextBtn = document.getElementById("demoNextBtn") as HTMLButtonElement;
 const demoCounter = document.getElementById("demoCounter") as HTMLElement;
-const labelView = document.getElementById("labelView") as HTMLElement;
-const comingSoonView = document.getElementById("comingSoonView") as HTMLElement;
-const comingSoonModeName = document.getElementById("comingSoonModeName") as HTMLElement;
-const binaryDemo = document.getElementById("binaryDemo") as HTMLElement;
 const sidebar = document.querySelector(".sidebar") as HTMLElement | null;
-const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-view-mode]"));
-
-type ViewMode = "binary" | "track" | "label";
-const VIEW_MODE_NAMES: Record<ViewMode, string> = {
-    binary: "Binary",
-    track: "Track",
-    label: "Label",
-};
+const focusKeypointSelect = document.getElementById("focusKeypointSelect") as HTMLSelectElement;
+const focusCountEl = document.getElementById("focusCount") as HTMLElement;
 
 // Mark the overlay so we can verify the bundle actually loaded.
 setStage("Booting pozu… (loading video)");
@@ -92,18 +78,6 @@ let demoFrameIndices: number[] = [];
 let demoPosition = 0;
 
 // ---- Next-frame prefetch ----
-// The expensive step between labelings is the HTML5 `<video>` seek inside
-// `getFrame`. Frames are picked at random so the *exact* next index isn't
-// known ahead of time, but we can pre-pick several and decode them in the
-// background while the user labels the current frame. `loadRandomFrame`
-// consumes from the front of the queue; each consumed slot is replaced so
-// the queue stays topped up. Seeks against the single `<video>` element
-// are serialised by the backend, so the queued decodes run back-to-back
-// asynchronously without racing each other. The first frame of a session
-// still pays full price; subsequent ones are (usually) instant.
-//
-// Memory cost is bounded: at ~1280×720 RGBA a decoded bitmap is ~3.7 MB,
-// so a full queue is well under 50 MB.
 const PREFETCH_DEPTH = 10;
 
 interface PrefetchedFrame {
@@ -117,15 +91,10 @@ function topUpPrefetch() {
     if (!model) return;
     const total = model.meta.totalFrames;
     if (total < 2) return;
-    // Pick relative to the last already-queued (or current) frame so we
-    // don't enqueue the same index back-to-back.
     let prev = prefetchQueue.length > 0 ? prefetchQueue[prefetchQueue.length - 1].idx : frameIndex;
     while (prefetchQueue.length < PREFETCH_DEPTH) {
         const idx = pickRandomFrame(total, prev);
         prev = idx;
-        // Swallow failures so a bad background seek doesn't surface as an
-        // unhandled rejection; consumers skip null bitmaps and fall back to
-        // a fresh decode.
         const promise = model.video.getFrame(idx).catch((err) => {
             console.warn(`[pozu] prefetch of frame ${idx} failed:`, err);
             return null;
@@ -134,12 +103,18 @@ function topUpPrefetch() {
     }
 }
 
+// ---- Focus mode state ----
+let focusNodeId = LABEL_DEFINITIONS[0].id;
+let focusCount = 0;
+let focusSubmitInProgress = false;
+let prevPlacedSize = 0;
+
 const getVideoMeta = (): VideoMeta | null => videoModel?.meta ?? null;
 
 const labeler = createLabeler({
     canvas,
     canvasContainer,
-    labelPalette,
+    labelPalette: null,
     getDisplayScale: () => displayScale,
     getVideoMeta,
 });
@@ -151,13 +126,9 @@ const zoom = createZoomController({
     onChange: (scale) => {
         zoomLevel.textContent = `${Math.round(scale * 100)}%`;
         zoomSlider.value = String(scale);
-        // Pan / reset only do something while zoomed in.
         const zoomed = scale > 1;
         zoomResetBtn.disabled = !zoomed;
         panToggleBtn.disabled = !zoomed;
-        // Leaving zoom turns the pan tool back off. Guarded on the active
-        // class so the initial onChange (before `zoom` is assigned) is a
-        // no-op rather than touching the controller.
         if (!zoomed && panToggleBtn.classList.contains("active")) setPanMode(false);
     },
 });
@@ -166,7 +137,6 @@ function setPanMode(on: boolean) {
     zoom.setPanMode(on);
     panToggleBtn.classList.toggle("active", on);
     panToggleBtn.setAttribute("aria-pressed", String(on));
-    // Pan and box-zoom are mutually exclusive tools.
     if (on) setBoxZoomMode(false);
 }
 
@@ -186,11 +156,8 @@ boxZoomToggleBtn.addEventListener("click", () =>
     setBoxZoomMode(!boxZoomToggleBtn.classList.contains("active"))
 );
 
-// Re-fit the frame to the window so it keeps filling the row on resize.
 window.addEventListener("resize", () => {
     if (canvasContainer.style.display === "none") {
-        // Still loading: keep the reserved placeholder in step with the window
-        // so the eventual frame drops into the same box.
         reserveFrameSpace();
         return;
     }
@@ -198,12 +165,10 @@ window.addEventListener("resize", () => {
     zoom.reset();
 });
 
-function updateSubmitReadyState() {
-    downloadBtn.classList.toggle("ready", labeler.placed.size === LABEL_DEFINITIONS.length);
-}
-
 labeler.onChange(() => {
-    updateSubmitReadyState();
+    const size = labeler.placed.size;
+    const added = size > prevPlacedSize;
+    prevPlacedSize = size;
     if (DEV_MODE) {
         const meta = getVideoMeta();
         updateDevModeJson(
@@ -212,8 +177,13 @@ labeler.onChange(() => {
                 : null
         );
     }
+    if (!DEV_MODE && added && labeler.placed.has(focusNodeId) && !focusSubmitInProgress) {
+        focusSubmitInProgress = true;
+        doFocusSubmit().finally(() => {
+            focusSubmitInProgress = false;
+        });
+    }
 });
-updateSubmitReadyState();
 
 function updateDemoNav() {
     demoPrevBtn.disabled = demoPosition === 0;
@@ -224,7 +194,6 @@ function updateDemoNav() {
 function enterDemoMode() {
     demoMode = true;
     newFrameBtn.hidden = true;
-    downloadBtn.hidden = true;
     demoControls.hidden = false;
     demoCounter.textContent = `1 / ${DEMO_FRAME_COUNT}`;
     demoPrevBtn.disabled = true;
@@ -234,7 +203,6 @@ function enterDemoMode() {
 function exitDemoMode() {
     demoMode = false;
     newFrameBtn.hidden = false;
-    downloadBtn.hidden = false;
     demoControls.hidden = true;
     loadRandomFrame();
 }
@@ -255,27 +223,7 @@ async function initDemoFrames() {
 }
 
 function setControlsEnabled(enabled: boolean) {
-    // In dev-mode newFrameBtn and downloadBtn are permanently disabled.
     if (!DEV_MODE) newFrameBtn.disabled = !enabled;
-    resetBtn.disabled = !enabled;
-    if (!DEV_MODE) downloadBtn.disabled = !enabled;
-}
-
-function setViewMode(mode: ViewMode) {
-    for (const button of modeButtons) {
-        button.classList.toggle("active", button.dataset.viewMode === mode);
-    }
-
-    if (mode === "label") {
-        labelView.hidden = false;
-        comingSoonView.hidden = true;
-        return;
-    }
-
-    labelView.hidden = true;
-    comingSoonView.hidden = false;
-    comingSoonModeName.textContent = VIEW_MODE_NAMES[mode];
-    binaryDemo.hidden = mode !== "binary";
 }
 
 function showStatus(type: "info" | "success" | "error", message: string) {
@@ -292,55 +240,33 @@ function showStatus(type: "info" | "success" | "error", message: string) {
 }
 
 // ---- Frame sizing ----
-// Keep in sync with `.view-shell` / `.top-nav-inner` max-width in styles.css.
 const SHELL_MAX_WIDTH = 2288;
-// Fixed horizontal chrome on the label row: shell padding (40), container
-// padding (32), the zoom rail (40), and the two gaps (12 + 20). Whatever's left
-// is shared between the frame and the sidebar.
 const ROW_CHROME = 144;
-// Vertical space outside the frame: the top nav, shell padding, and the
-// controls below the frame. Keeps the frame from overflowing the window height.
 const FRAME_RESERVED_HEIGHT = 220;
 const MIN_FRAME_WIDTH = 300;
 const SIDEBAR_MAX_WIDTH = 300;
 const SIDEBAR_MIN_WIDTH = 150;
-// The EMBER frames are only 960×540, so filling a wide window means upscaling.
-// Cap it so the frame doesn't get unusably soft on very large monitors.
 const MAX_FRAME_SCALE = 2;
-// Dimensions used to reserve the frame area before the real video metadata is
-// known. The EMBER clips are 960×540 (16:9); holding the placeholder at the
-// size the first frame will occupy keeps the page from jumping when it paints.
 const DEFAULT_FRAME_WIDTH = 960;
 const DEFAULT_FRAME_HEIGHT = 540;
-// The canvas-container draws a 2px border the loading placeholder lacks; add it
-// back so the reserved box lines up exactly with the framed canvas.
 const CANVAS_BORDER = 2;
 
 const clampW = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 
-// Compute the on-screen frame and sidebar widths for an intrinsic w×h video,
-// given the current window. Pure — callers apply the result. The frame fills
-// the available viewport box (width and height, upscaling when there's room);
-// when the window is too narrow to hold both at full size, the frame and the
-// sidebar shrink together — the sidebar tracks the frame and never wraps below.
 function computeFrameBox(
     w: number,
     h: number
 ): { frameW: number; frameH: number; sidebarW: number } {
     const availH = Math.max(240, window.innerHeight - FRAME_RESERVED_HEIGHT);
-    // Width shared between the frame and the sidebar.
     const usable = Math.max(
         MIN_FRAME_WIDTH,
         Math.min(window.innerWidth, SHELL_MAX_WIDTH) - ROW_CHROME
     );
-    // The frame's preferred width when only height / max upscale constrain it.
     const frameCap = Math.min(w * MAX_FRAME_SCALE, (availH / h) * w);
 
     let sidebarW = SIDEBAR_MAX_WIDTH;
     let frameW = frameCap;
     if (frameCap + SIDEBAR_MAX_WIDTH > usable) {
-        // Not enough room for both at full size: shrink them together, keeping
-        // the frame-to-sidebar ratio so the sidebar scales with the frame.
         sidebarW = clampW(
             (usable * SIDEBAR_MAX_WIDTH) / (frameCap + SIDEBAR_MAX_WIDTH),
             SIDEBAR_MIN_WIDTH,
@@ -352,7 +278,6 @@ function computeFrameBox(
     return { frameW, frameH: (frameW / w) * h, sidebarW };
 }
 
-// Size the live canvas (and sidebar) to fill the available row.
 function fitCanvasToViewport(): void {
     if (!videoModel) return;
     const { width: w, height: h } = videoModel.meta;
@@ -364,11 +289,6 @@ function fitCanvasToViewport(): void {
     if (sidebar) sidebar.style.width = `${sidebarW}px`;
 }
 
-// Hold the frame area at its eventual size *before* the first frame loads, so
-// arriving at the page doesn't flash a small placeholder that then jumps to the
-// full fit-to-window frame. The real video metadata isn't known yet, so the
-// default 16:9 dimensions are used; smaller or odd-shaped videos are padded
-// into this allocation once they load.
 function reserveFrameSpace(): void {
     if (canvasContainer.style.display !== "none") return;
     const { frameW, frameH, sidebarW } = computeFrameBox(DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT);
@@ -377,7 +297,6 @@ function reserveFrameSpace(): void {
     if (sidebar) sidebar.style.width = `${sidebarW}px`;
 }
 
-// Reserve the space synchronously at boot, before the (slow) video load begins.
 reserveFrameSpace();
 
 async function showFrame(idx: number, bitmapPromise?: Promise<ImageBitmap | null>) {
@@ -415,15 +334,10 @@ async function showFrame(idx: number, bitmapPromise?: Promise<ImageBitmap | null
     initialLoading.style.display = "none";
     zoom.reset();
     zoomSlider.disabled = false;
-    // Box-zoom works from 1:1 (its job is to magnify a chosen region), so
-    // it's available as soon as a frame is shown — unlike pan, which only
-    // matters once zoomed in.
     boxZoomToggleBtn.disabled = false;
 
     setControlsEnabled(true);
 
-    // Current frame is painted; the `<video>` is now free to seek ahead.
-    // Refill the background-decode queue.
     topUpPrefetch();
 }
 
@@ -439,11 +353,6 @@ async function loadRandomFrame() {
         return;
     }
 
-    // Resolve the next frame, preferring background-decoded ones from the
-    // front of the queue. A single seek can fail or time out — deep seeks
-    // into the remote MP4 are flaky — so skip null bitmaps and ultimately
-    // fall back to freshly-picked frames instead of dead-ending on "no
-    // data" for one unlucky index.
     let idx = -1;
     let bitmap: ImageBitmap | null = null;
     while (bitmap == null && prefetchQueue.length > 0) {
@@ -469,6 +378,57 @@ async function ensureVideoModel() {
         `Video opened: ${videoModel.meta.totalFrames} frames, ` +
             `${videoModel.meta.width}×${videoModel.meta.height} @ ${videoModel.meta.fps.toFixed(2)} fps`
     );
+}
+
+// ---- Focus mode ----
+function buildFocusPicker() {
+    for (const def of LABEL_DEFINITIONS) {
+        const option = document.createElement("option");
+        option.value = def.id;
+        option.textContent = def.name;
+        focusKeypointSelect.appendChild(option);
+    }
+    focusKeypointSelect.addEventListener("change", () => {
+        focusNodeId = focusKeypointSelect.value;
+    });
+    focusNodeId = LABEL_DEFINITIONS[0].id;
+    focusKeypointSelect.value = focusNodeId;
+}
+
+async function doFocusSubmit() {
+    const meta = getVideoMeta();
+    if (!meta) return;
+
+    const payload = buildPayload({
+        videoUrl: VIDEO_URL,
+        frameIndex,
+        videoMeta: meta,
+        placed: labeler.placed,
+    });
+
+    setControlsEnabled(false);
+    try {
+        await submitLabelPayload(payload);
+    } catch (err) {
+        console.error("Focus submit failed:", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        showStatus("error", `Failed to submit: ${msg}`);
+        setControlsEnabled(true);
+        return;
+    }
+
+    focusCount += 1;
+    focusCountEl.textContent = `Frames labeled: ${focusCount}`;
+    statusMsg.style.display = "none";
+
+    try {
+        await loadRandomFrame();
+    } catch (err) {
+        console.error("Loading next frame failed after focus submit:", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        showStatus("error", `Labeled submitted, but failed to load next frame: ${msg}`);
+        setControlsEnabled(true);
+    }
 }
 
 // ---- Buttons ----
@@ -499,67 +459,7 @@ newFrameBtn.addEventListener("click", () => {
     });
 });
 
-resetBtn.addEventListener("click", () => {
-    labeler.clearAll();
-});
-
-downloadBtn.addEventListener("click", async () => {
-    if (labeler.placed.size === 0) {
-        showStatus("error", "No labels placed yet.");
-        return;
-    }
-
-    const meta = getVideoMeta();
-    if (!meta) {
-        showStatus("error", "Video metadata unavailable. Load a frame and try again.");
-        return;
-    }
-
-    const payload = buildPayload({
-        videoUrl: VIDEO_URL,
-        frameIndex,
-        videoMeta: meta,
-        placed: labeler.placed,
-    });
-
-    setControlsEnabled(false);
-    try {
-        await submitLabelPayload(payload);
-    } catch (err) {
-        console.error("Label JSON submission failed:", err);
-        const msg = err instanceof Error ? err.message : String(err);
-        showStatus("error", `Failed to submit labels: ${msg}`);
-        setControlsEnabled(true);
-        return;
-    }
-
-    statusMsg.style.display = "none";
-    try {
-        await loadRandomFrame();
-    } catch (err) {
-        console.error("Loading next random frame failed after submit:", err);
-        const msg = err instanceof Error ? err.message : String(err);
-        showStatus("error", `Labels were submitted, but loading a new frame failed: ${msg}`);
-        setControlsEnabled(true);
-    }
-});
-
-for (const button of modeButtons) {
-    button.addEventListener("click", () => {
-        const mode = button.dataset.viewMode as ViewMode | undefined;
-        if (!mode) return;
-        setViewMode(mode);
-    });
-}
-
-// Cross-page nav links (e.g. from box.html) can preselect a mode via
-// `./index.html#binary`. Only honour known modes — unknown hashes fall
-// back to the default "label" view.
-const initialHash = window.location.hash.replace(/^#/, "") as ViewMode;
-if (initialHash && initialHash in VIEW_MODE_NAMES) {
-    setViewMode(initialHash);
-}
-
+buildFocusPicker();
 onAuthChange(() => {
     if (isSignedIn() && demoMode) exitDemoMode();
 });
@@ -569,10 +469,8 @@ initAuthControl();
 (async () => {
     if (isSignedIn()) {
         newFrameBtn.hidden = false;
-        downloadBtn.hidden = false;
         if (DEV_MODE) {
             newFrameBtn.disabled = true;
-            downloadBtn.disabled = true;
         }
     }
     try {
