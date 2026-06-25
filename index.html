@@ -4,9 +4,9 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Pozu</title>
-      <script type="module" crossorigin src="./assets/index-ob1JNVvS.js"></script>
-      <link rel="modulepreload" crossorigin href="./assets/auth-CMIe1uX4.js">
-      <link rel="stylesheet" crossorigin href="./assets/auth-DJ7Vne4K.css">
+      <script type="module" crossorigin src="./assets/index-tc3oRfGm.js"></script>
+      <link rel="modulepreload" crossorigin href="./assets/dev-mode-CPlIkUvY.js">
+      <link rel="stylesheet" crossorigin href="./assets/dev-mode-DQ2j3mSB.css">
     </head>
     <body>
         <header class="top-nav">
@@ -47,15 +47,18 @@
                     <div class="nav-section nav-section--curate">
                         <span class="nav-section-title">Curate</span>
                         <div class="nav-section-tabs">
-                            <button class="top-nav-link" data-view-mode="binary" type="button">
+                            <button class="top-nav-link" data-view-mode="binary" data-always-disabled type="button" disabled>
                                 Binary
                             </button>
-                            <button class="top-nav-link" data-view-mode="track" type="button">
+                            <button class="top-nav-link" data-view-mode="track" data-always-disabled type="button" disabled>
                                 Track
                             </button>
                         </div>
                     </div>
                 </nav>
+                <div class="top-nav-devmode">
+                    <a class="top-nav-devmode-link" href="?dev-mode">Dev Mode</a>
+                </div>
                 <div class="top-nav-auth" id="authControl">
                     <button
                         class="auth-signin"
@@ -182,22 +185,7 @@
             <section id="comingSoonView" class="coming-soon" hidden>
                 <h1><span id="comingSoonModeName">Mode</span> View</h1>
                 <p>Coming soon…</p>
-                <div id="binaryDemo" class="binary-demo" hidden>
-                    <figure>
-                        <img
-                            src="./assets/binary-demo-good-Dta7IfLk.png"
-                            alt="Example of a good pose estimation, accepted as Good"
-                        />
-                        <figcaption>Good</figcaption>
-                    </figure>
-                    <figure>
-                        <img
-                            src="./assets/binary-demo-bad-BL83IOka.png"
-                            alt="Example of a bad pose estimation, rejected as Bad"
-                        />
-                        <figcaption>Bad</figcaption>
-                    </figure>
-                </div>
+                <div id="binaryDemo" hidden></div>
             </section>
         </main>
 

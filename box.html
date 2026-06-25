@@ -4,9 +4,9 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Pozu — Box Selection</title>
-      <script type="module" crossorigin src="./assets/box-Dskwj1Dh.js"></script>
-      <link rel="modulepreload" crossorigin href="./assets/auth-CMIe1uX4.js">
-      <link rel="stylesheet" crossorigin href="./assets/auth-DJ7Vne4K.css">
+      <script type="module" crossorigin src="./assets/box-DwOadFmS.js"></script>
+      <link rel="modulepreload" crossorigin href="./assets/dev-mode-CPlIkUvY.js">
+      <link rel="stylesheet" crossorigin href="./assets/dev-mode-DQ2j3mSB.css">
     </head>
     <body>
         <header class="top-nav">
@@ -41,11 +41,14 @@
                     <div class="nav-section nav-section--curate">
                         <span class="nav-section-title">Curate</span>
                         <div class="nav-section-tabs">
-                            <a class="top-nav-link" href="./index.html#binary">Binary</a>
-                            <a class="top-nav-link" href="./index.html#track">Track</a>
+                            <a class="top-nav-link" href="./index.html#binary" data-always-disabled aria-disabled="true" tabindex="-1">Binary</a>
+                            <a class="top-nav-link" href="./index.html#track" data-always-disabled aria-disabled="true" tabindex="-1">Track</a>
                         </div>
                     </div>
                 </nav>
+                <div class="top-nav-devmode">
+                    <a class="top-nav-devmode-link" href="?dev-mode">Dev Mode</a>
+                </div>
                 <div class="top-nav-auth" id="authControl">
                     <button
                         class="auth-signin"
@@ -75,12 +78,12 @@
         </header>
 
         <main class="view-shell">
-            <section id="boxView">
-                <p class="instructions">
-                    Click and drag on the frame to draw the rectangular box that fully contains the
-                    subject, then submit your result and repeat.
-                </p>
+            <section id="boxPlaceholder" class="coming-soon">
+                <p>There are no frames which currently require box annotations.</p>
+                <p>Please check back another time.</p>
+            </section>
 
+            <section id="boxView" hidden>
                 <div class="main-container">
                     <div>
                         <div class="canvas-col">
