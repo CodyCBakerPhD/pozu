@@ -13,7 +13,7 @@ import { createZoomController } from "./zoom.js";
 import { pickRandomFrame, type VideoMeta } from "./payload.js";
 import { buildBoxPayload, normaliseBox, clampBox, type Box } from "./box-payload.js";
 import { initAuthControl } from "./auth.js";
-import { DEV_MODE, initDevMode, updateDevModeJson } from "./dev-mode.js";
+import { DEV_MODE, initDevMode, updateDevModeJson, updateDevModeFlagJson } from "./dev-mode.js";
 
 // ---- Version badge ----
 (document.getElementById("versionBadge") as HTMLElement).textContent = `v${__APP_VERSION__}`;
@@ -138,6 +138,22 @@ if (!DEV_MODE) {
         updateDevModeJson(
             videoModel
                 ? buildBoxPayload({ videoUrl: VIDEO_URL, frameIndex, videoMeta: videoModel.meta, box })
+                : null
+        );
+        updateDevModeFlagJson(
+            videoModel ? { video_url: VIDEO_URL, frame_index: frameIndex } : null,
+            videoModel
+                ? {
+                      video_url: VIDEO_URL,
+                      frame_index: frameIndex,
+                      total_frames: videoModel.meta.totalFrames,
+                      fps: videoModel.meta.fps,
+                      frame_width: videoModel.meta.width,
+                      frame_height: videoModel.meta.height,
+                      timestamp: "<time of submission>",
+                      reason: "<selected at submit>",
+                      details: "<optional>",
+                  }
                 : null
         );
     }

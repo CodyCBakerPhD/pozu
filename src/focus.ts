@@ -12,7 +12,7 @@ import { submitLabelPayload } from "./label-api.js";
 import { submitFrameReport } from "./report-api.js";
 import { LABEL_DEFINITIONS } from "./skeleton.js";
 import { initAuthControl, isSignedIn, onAuthChange } from "./auth.js";
-import { DEV_MODE, initDevMode, updateDevModeJson } from "./dev-mode.js";
+import { DEV_MODE, initDevMode, updateDevModeJson, updateDevModeFlagJson } from "./dev-mode.js";
 
 // ---- Version badge ----
 (document.getElementById("versionBadge") as HTMLElement).textContent = `v${__APP_VERSION__}`;
@@ -344,6 +344,23 @@ async function showFrame(idx: number, bitmapPromise?: Promise<ImageBitmap | null
     zoom.reset();
     zoomSlider.disabled = false;
     boxZoomToggleBtn.disabled = false;
+
+    if (DEV_MODE) {
+        updateDevModeFlagJson(
+            { video_url: VIDEO_URL, frame_index: frameIndex },
+            {
+                video_url: VIDEO_URL,
+                frame_index: frameIndex,
+                total_frames: videoModel.meta.totalFrames,
+                fps: videoModel.meta.fps,
+                frame_width: videoModel.meta.width,
+                frame_height: videoModel.meta.height,
+                timestamp: "<time of submission>",
+                reason: "<selected at submit>",
+                details: "<optional>",
+            }
+        );
+    }
 
     setControlsEnabled(true);
 

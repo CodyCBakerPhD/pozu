@@ -71,6 +71,44 @@ body.dev-mode .top-nav-devmode-link {
     letter-spacing: 0.08em;
 }
 
+.dev-mode-flag-panel {
+    margin: 0 20px 28px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(239, 68, 68, 0.03);
+}
+
+.dev-mode-flag-heading {
+    margin: 0;
+    padding: 8px 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.dev-mode-flag-section {
+    border-top: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.dev-mode-flag-section:first-of-type {
+    border-top: none;
+}
+
+.dev-mode-flag-label {
+    padding: 6px 16px 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #f87171;
+    opacity: 0.75;
+}
+
 .dev-mode-json-content {
     margin: 0;
     padding: 16px;

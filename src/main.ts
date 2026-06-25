@@ -11,7 +11,7 @@ import { submitLabelPayload } from "./label-api.js";
 import { submitFrameReport } from "./report-api.js";
 import { LABEL_DEFINITIONS } from "./skeleton.js";
 import { initAuthControl, isSignedIn, onAuthChange } from "./auth.js";
-import { DEV_MODE, initDevMode, updateDevModeJson } from "./dev-mode.js";
+import { DEV_MODE, initDevMode, updateDevModeJson, updateDevModeFlagJson } from "./dev-mode.js";
 
 // ---- Version badge ----
 (document.getElementById("versionBadge") as HTMLElement).textContent = `v${__APP_VERSION__}`;
@@ -428,6 +428,24 @@ async function showFrame(idx: number, bitmapPromise?: Promise<ImageBitmap | null
     // it's available as soon as a frame is shown — unlike pan, which only
     // matters once zoomed in.
     boxZoomToggleBtn.disabled = false;
+
+    if (DEV_MODE) {
+        const meta = getVideoMeta();
+        updateDevModeFlagJson(
+            { video_url: VIDEO_URL, frame_index: frameIndex },
+            {
+                video_url: VIDEO_URL,
+                frame_index: frameIndex,
+                total_frames: meta?.totalFrames,
+                fps: meta?.fps,
+                frame_width: meta?.width,
+                frame_height: meta?.height,
+                timestamp: "<time of submission>",
+                reason: "<selected at submit>",
+                details: "<optional>",
+            }
+        );
+    }
 
     setControlsEnabled(true);
 
